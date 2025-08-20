@@ -5,17 +5,23 @@ import App from './App'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
+import OAuthCallback from './pages/OAuthCallback'
+import Protected from './components/Protected'
+import { AuthProvider } from './context/AuthContext'
 import './index.css'
 
 const router = createBrowserRouter([
   { path: '/', element: <App /> },
   { path: '/login', element: <Login /> },
   { path: '/signup', element: <Signup /> },
-  { path: '/dashboard', element: <Dashboard /> },
+  { element: <Protected />, children: [ { path: '/dashboard', element: <Dashboard /> } ] },
+  { path: '/oauth2/callback', element: <OAuthCallback /> }
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </React.StrictMode>
 )

@@ -30,4 +30,8 @@ public class UserService {
 
     public boolean emailExists(String email) { return userRepository.existsByEmail(email); }
     public boolean usernameExists(String username) { return userRepository.existsByUsername(username); }
+
+    public boolean passwordMatches(String raw, String encoded) {
+        return encoder.matches(raw, encoded);
+    }
 }

@@ -3,6 +3,7 @@ package com.example.wallet.controller;
 import com.example.wallet.dto.ExpenseRequest;
 import com.example.wallet.model.Expense;
 import com.example.wallet.model.User;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.example.wallet.service.ExpenseService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -17,11 +18,8 @@ public class ExpenseController {
         this.expenseService = expenseService;
     }
 
-    // TODO: Replace with current authenticated user
-    private User demoUser() { User u = new User(); u.setId(1L); u.setUsername("demo"); return u; }
-
     @PostMapping
-    public ResponseEntity<Expense> create(@Valid @RequestBody ExpenseRequest req) {
-        return ResponseEntity.ok(expenseService.create(demoUser(), req));
+    public ResponseEntity<Expense> create(@AuthenticationPrincipal User user, @Valid @RequestBody ExpenseRequest req) {
+        return ResponseEntity.ok(expenseService.create(user, req));
     }
 }

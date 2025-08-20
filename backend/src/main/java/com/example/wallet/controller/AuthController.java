@@ -43,8 +43,9 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         User u = userService.findByUsernameOrEmail(req.getUsernameOrEmail());
-        if (u == null) return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
-        // For demo only: proper password verification should be in a service with AuthenticationManager
+        if (u == null || !userService.passwordMatches(req.getPassword(), u.getPassword())) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
+        }
         String token = jwtService.generate(u.getUsername(), Map.of("uid", u.getId()));
         return ResponseEntity.ok(Map.of("token", token));
     }

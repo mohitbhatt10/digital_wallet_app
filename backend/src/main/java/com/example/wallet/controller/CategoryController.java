@@ -3,6 +3,7 @@ package com.example.wallet.controller;
 import com.example.wallet.dto.CategoryRequest;
 import com.example.wallet.model.Category;
 import com.example.wallet.model.User;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.example.wallet.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -18,16 +19,13 @@ public class CategoryController {
         this.categoryService = categoryService;
     }
 
-    // TODO: Replace with current authenticated user
-    private User demoUser() { User u = new User(); u.setId(1L); u.setUsername("demo"); return u; }
-
     @PostMapping
-    public ResponseEntity<Category> create(@Valid @RequestBody CategoryRequest req) {
-        return ResponseEntity.ok(categoryService.create(demoUser(), req));
+    public ResponseEntity<Category> create(@AuthenticationPrincipal User user, @Valid @RequestBody CategoryRequest req) {
+        return ResponseEntity.ok(categoryService.create(user, req));
     }
 
     @GetMapping
-    public ResponseEntity<List<Category>> list() {
-        return ResponseEntity.ok(categoryService.listFor(demoUser()));
+    public ResponseEntity<List<Category>> list(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(categoryService.listFor(user));
     }
 }

@@ -1,3 +1,5 @@
+spring.config.import: optional:file:.env[.properties]
+
 spring:
   datasource:
     url: jdbc:postgresql://127.0.0.1:5432/wallet
@@ -18,23 +20,26 @@ spring:
       client:
         registration:
           google:
-            client-id: dev-google-client-id
-            client-secret: dev-google-client-secret
-            scope: openid, profile, email
-
-# PostgreSQL example for production
-# spring:
-#   datasource:
-#     url: jdbc:postgresql://localhost:5432/wallet
-#     username: postgres
-#     password: yourpassword
-#   jpa:
-#     properties:
-#       hibernate:
-#         dialect: org.hibernate.dialect.PostgreSQLDialect
+            # NOTE: These credentials are sensitive. Prefer setting via environment variables:
+            # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID
+            # SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET
+            client-id: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID}
+            client-secret: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET}
+            scope: openid,profile,email
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+            user-name-attribute: sub
 
 server:
   port: 8080
 jwt:
-  secret: change-this-secret
+  # Provide via environment variable JWT_SECRET in non-dev environments
+  secret: ${JWT_SECRET}
   expirationMillis: 3600000
+app:
+  cors:
+    allowed-origins: http://localhost:5173
