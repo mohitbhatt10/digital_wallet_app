@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/wallet
+    driverClassName: org.postgresql.Driver
+    username: appuser
+    password: StrongP@ssw0rd 
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  h2:
+    console:
+      enabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: dev-google-client-id
+            client-secret: dev-google-client-secret
+            scope: openid, profile, email
+
+# PostgreSQL example for production
+# spring:
+#   datasource:
+#     url: jdbc:postgresql://localhost:5432/wallet
+#     username: postgres
+#     password: yourpassword
+#   jpa:
+#     properties:
+#       hibernate:
+#         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8080
+jwt:
+  secret: change-this-secret
+  expirationMillis: 3600000

@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+/* Global heights */
+html, body, #root { height: 100%; }
+
+/* Reusable component classes */
+@layer components {
+  .btn { @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2; }
+  .btn-primary { @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-600; }
+  .btn-secondary { @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-white text-zinc-900 border border-zinc-300 hover:bg-zinc-50 focus:ring-zinc-300; }
+  .input { @apply block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600; }
+  .card { @apply rounded-xl border border-zinc-200 bg-white shadow-sm; }
+}

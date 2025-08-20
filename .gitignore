@@ -1,0 +1,41 @@
+# ---- Maven / Java ----
+**/target/
+*.class
+*.log
+hs_err_pid*
+
+# Spring Boot specific
+*.jar
+*.war
+*.ear
+
+# ---- Node / Vite / Frontend ----
+frontend/node_modules/
+node_modules/
+frontend/dist/
+dist/
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---- Environment / Secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- IDE / Editors ----
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# ---- OS Files ----
+.DS_Store
+Thumbs.db
+
+# ---- Misc ----
+*.cache
