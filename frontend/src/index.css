@@ -5,9 +5,19 @@ html, body, #root { height: 100%; }
 
 /* Reusable component classes */
 @layer components {
-  .btn { @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2; }
-  .btn-primary { @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-600; }
-  .btn-secondary { @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-white text-zinc-900 border border-zinc-300 hover:bg-zinc-50 focus:ring-zinc-300; }
-  .input { @apply block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600; }
-  .card { @apply rounded-xl border border-zinc-200 bg-white shadow-sm; }
+  /* Base button (can be used directly) */
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-[.98]; }
+  /* Variant buttons (repeat base utilities because Tailwind cannot @apply custom selector 'btn') */
+  .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-[.98] bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow hover:from-blue-500 hover:to-indigo-500 focus:ring-blue-600 disabled:opacity-60 disabled:cursor-not-allowed; }
+  .btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-[.98] bg-white text-zinc-900 border border-zinc-300 hover:bg-zinc-50 focus:ring-zinc-300; }
+  .btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all focus:outline-none active:scale-[.97] text-zinc-600 hover:bg-zinc-100; }
+  .btn-outline { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all border border-zinc-300 text-zinc-700 bg-transparent hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-300 active:scale-[.98]; }
+  .input { @apply block w-full rounded-md border border-zinc-300 bg-white/70 backdrop-blur px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition; }
+  .input-error { @apply border-red-500 focus:ring-red-600 focus:border-red-600; }
+  .card { @apply rounded-2xl border border-zinc-200/70 bg-white/60 backdrop-blur shadow-sm transition hover:shadow-md; }
+  .surface { @apply bg-white/60 backdrop-blur supports-[backdrop-filter]:bg-white/40; }
+  .gradient-text { @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600; }
+  .pill { @apply inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600; }
 }
+
+body { @apply bg-gradient-to-br from-zinc-50 via-white to-zinc-100 text-zinc-900; }

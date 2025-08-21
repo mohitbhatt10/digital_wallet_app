@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { login } from '../api/auth'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8080'
@@ -30,22 +30,40 @@ export default function Login() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-10">
-      <h2 className="text-2xl font-semibold text-zinc-900">Login</h2>
-      <form onSubmit={submit} className="mt-6 grid gap-4">
-        {error && <div className="text-sm text-red-600">{error}</div>}
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">Email or Username</label>
-          <input className="input" placeholder="you@example.com" value={usernameOrEmail} onChange={e => setU(e.target.value)} />
+    <div className="min-h-screen flex flex-col">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-50 via-white to-indigo-50" />
+      <nav className="px-6 py-4 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold">DW</div>
+          <span className="font-semibold gradient-text">Digital Wallet</span>
+        </Link>
+        <div className="flex items-center gap-2 text-sm">
+          <Link to="/signup" className="btn-ghost">Sign up</Link>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">Password</label>
-          <input className="input" placeholder="********" type="password" value={password} onChange={e => setP(e.target.value)} />
+      </nav>
+      <div className="flex-1 flex items-center justify-center px-4 pb-20">
+        <div className="w-full max-w-md">
+          <div className="card p-8">
+            <h2 className="text-2xl font-semibold">Welcome back</h2>
+            <p className="mt-1 text-sm text-zinc-500">Sign in to continue</p>
+            <form onSubmit={submit} className="mt-6 grid gap-5">
+              {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{error}</div>}
+              <div className="grid gap-1">
+                <label className="text-xs font-medium text-zinc-600">Email or Username</label>
+                <input className="input" placeholder="you@example.com" autoComplete="username" value={usernameOrEmail} onChange={e => setU(e.target.value)} />
+              </div>
+              <div className="grid gap-1">
+                <label className="text-xs font-medium text-zinc-600">Password</label>
+                <input className="input" placeholder="••••••••" type="password" autoComplete="current-password" value={password} onChange={e => setP(e.target.value)} />
+              </div>
+              <button type="submit" disabled={loading} className="btn-primary w-full">{loading ? 'Logging in...' : 'Login'}</button>
+            </form>
+            <div className="mt-6">
+              <button className="btn-secondary w-full" type="button" onClick={() => { window.location.href = `${API_BASE}/oauth2/authorization/google` }}>Continue with Google</button>
+            </div>
+            <div className="mt-6 text-center text-xs text-zinc-500">No account? <Link to="/signup" className="text-blue-600 hover:underline">Create one</Link></div>
+          </div>
         </div>
-  <button type="submit" disabled={loading} className="btn-primary">{loading ? 'Logging in...' : 'Login'}</button>
-      </form>
-      <div className="mt-4">
-        <button className="btn-secondary w-full" type="button" onClick={() => { window.location.href = `${API_BASE}/oauth2/authorization/google` }}>Login with Google</button>
       </div>
     </div>
   )
