@@ -1,6 +1,7 @@
 package com.example.wallet.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -8,6 +9,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "expenses")
+@JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
 public class Expense {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

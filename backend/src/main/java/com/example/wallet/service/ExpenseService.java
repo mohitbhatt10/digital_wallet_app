@@ -1,6 +1,7 @@
 package com.example.wallet.service;
 
 import com.example.wallet.dto.ExpenseRequest;
+import com.example.wallet.dto.ExpenseResponse;
 import com.example.wallet.model.*;
 import com.example.wallet.repository.*;
 import org.springframework.stereotype.Service;
@@ -34,5 +35,29 @@ public class ExpenseService {
             e.setTags(tags);
         }
         return expenseRepository.save(e);
+    }
+
+    public List<Expense> listRecent(User user) {
+        // For now return last 20 by id desc (simple). Could be refined with date filter.
+        return expenseRepository.findAll().stream()
+                .filter(e -> e.getUser().getId().equals(user.getId()))
+                .sorted(Comparator.comparing(Expense::getId).reversed())
+                .limit(20)
+                .toList();
+    }
+
+    public ExpenseResponse toResponse(Expense e) {
+        ExpenseResponse r = new ExpenseResponse();
+        r.setId(e.getId());
+        r.setAmount(e.getAmount());
+        r.setDate(e.getDate());
+        r.setDescription(e.getDescription());
+        if (e.getCategory() != null) {
+            r.setCategory(new ExpenseResponse.CategoryRef(e.getCategory().getId(), e.getCategory().getName()));
+        }
+        if (e.getTags() != null && !e.getTags().isEmpty()) {
+            r.setTags(e.getTags().stream().map(t -> new ExpenseResponse.TagRef(t.getId(), t.getName())).toList());
+        }
+        return r;
     }
 }

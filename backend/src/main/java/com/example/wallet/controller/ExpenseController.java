@@ -1,6 +1,7 @@
 package com.example.wallet.controller;
 
 import com.example.wallet.dto.ExpenseRequest;
+import com.example.wallet.dto.ExpenseResponse;
 import com.example.wallet.model.Expense;
 import com.example.wallet.model.User;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -8,6 +9,7 @@ import com.example.wallet.service.ExpenseService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/expenses")
@@ -19,7 +21,14 @@ public class ExpenseController {
     }
 
     @PostMapping
-    public ResponseEntity<Expense> create(@AuthenticationPrincipal User user, @Valid @RequestBody ExpenseRequest req) {
-        return ResponseEntity.ok(expenseService.create(user, req));
+    public ResponseEntity<ExpenseResponse> create(@AuthenticationPrincipal User user, @Valid @RequestBody ExpenseRequest req) {
+        Expense created = expenseService.create(user, req);
+        return ResponseEntity.ok(expenseService.toResponse(created));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ExpenseResponse>> listRecent(@AuthenticationPrincipal User user) {
+        List<ExpenseResponse> list = expenseService.listRecent(user).stream().map(expenseService::toResponse).toList();
+        return ResponseEntity.ok(list);
     }
 }

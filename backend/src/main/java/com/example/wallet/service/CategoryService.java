@@ -18,12 +18,20 @@ public class CategoryService {
     public Category create(User owner, CategoryRequest req) {
         Category c = new Category();
         c.setName(req.getName());
-        c.setType(req.getType());
         c.setOwner(owner);
+        
+        if (req.getParentId() != null) {
+            categoryRepository.findById(req.getParentId()).ifPresent(c::setParent);
+        }
+        
         return categoryRepository.save(c);
     }
 
     public List<Category> listFor(User user) {
         return categoryRepository.findByOwnerIsNullOrOwner(user);
+    }
+    
+    public List<Category> listMainCategories(User user) {
+        return categoryRepository.findMainCategories(user);
     }
 }
