@@ -16,7 +16,15 @@ export default function Dashboard() {
   const [showCategory, setShowCategory] = useState(false)
   const [showTag, setShowTag] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', categoryId: '', tagIds: [] as number[] })
+  const [expenseForm, setExpenseForm] = useState({ 
+    amount: '', 
+    description: '', 
+    categoryId: '', 
+    subCategoryId: '',
+    tagIds: [] as number[], 
+    paymentType: '',
+    transactionDate: new Date().toISOString().slice(0, 16) // Format: YYYY-MM-DDTHH:MM
+  })
   const [categoryForm, setCategoryForm] = useState({ name: '', parentId: '', categoryType: '', subCategories: [''] })
   const [tagForm, setTagForm] = useState({ name: '' })
   const [error, setError] = useState<string|undefined>()
@@ -50,13 +58,23 @@ export default function Dashboard() {
       const payload = {
         amount: parseFloat(expenseForm.amount),
         description: expenseForm.description || undefined,
-        categoryId: expenseForm.categoryId ? Number(expenseForm.categoryId) : undefined,
-        tagIds: expenseForm.tagIds.length ? expenseForm.tagIds : undefined
+        categoryId: expenseForm.subCategoryId ? Number(expenseForm.subCategoryId) : (expenseForm.categoryId ? Number(expenseForm.categoryId) : undefined),
+        tagIds: expenseForm.tagIds.length ? expenseForm.tagIds : undefined,
+        paymentType: expenseForm.paymentType || undefined,
+        transactionDate: expenseForm.transactionDate ? new Date(expenseForm.transactionDate).toISOString() : undefined
       }
       const created = await createExpense(payload)
       setExpenses(prev => [created, ...prev])
       setShowExpense(false)
-      setExpenseForm({ amount: '', description: '', categoryId: '', tagIds: [] })
+      setExpenseForm({ 
+        amount: '', 
+        description: '', 
+        categoryId: '', 
+        subCategoryId: '',
+        tagIds: [], 
+        paymentType: '',
+        transactionDate: new Date().toISOString().slice(0, 16)
+      })
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to create expense')
     } finally { setLoading(false) }
@@ -163,8 +181,13 @@ export default function Dashboard() {
                   <div className="flex flex-col">
                     <span className="font-medium text-zinc-800">${e.amount.toFixed(2)}</span>
                     <span className="text-zinc-500">{e.category?.name || '—'} {e.tags && e.tags.length > 0 && <span className="text-xs">[{e.tags.map(t => t.name).join(', ')}]</span>}</span>
+                    {e.paymentType && <span className="text-xs text-zinc-400">via {e.paymentType.replace('-', ' ')}</span>}
                   </div>
-                  <span className="text-xs text-zinc-400">{new Date(e.date).toLocaleDateString()}</span>
+                  <div className="text-right">
+                    <span className="text-xs text-zinc-400">{new Date(e.transactionDate).toLocaleDateString()}</span>
+                    <br />
+                    <span className="text-xs text-zinc-300">{new Date(e.transactionDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -260,22 +283,110 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  {/* Category field */}
+                  {/* Main Category field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      Main Category *
+                    </label>
+                    <select 
+                      required
+                      className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/80 appearance-none" 
+                      value={expenseForm.categoryId} 
+                      onChange={e => {
+                        setExpenseForm(f => ({ ...f, categoryId: e.target.value, subCategoryId: '' }))
+                      }}
+                    >
+                      <option value="">Select main category</option>
+                      {categories.filter(c => !c.parent).map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Sub-Category field */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                       </svg>
-                      Category
+                      Sub-Category
+                      <span className="text-xs text-gray-400 font-normal">(optional)</span>
                     </label>
-                    <select className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/80 appearance-none" value={expenseForm.categoryId} onChange={e => setExpenseForm(f => ({ ...f, categoryId: e.target.value }))}>
-                      <option value="">Select a category</option>
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.parent ? `${c.parent.name} > ${c.name}` : c.name}
-                        </option>
-                      ))}
+                    <select 
+                      className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/80 appearance-none disabled:opacity-50 disabled:cursor-not-allowed" 
+                      value={expenseForm.subCategoryId} 
+                      onChange={e => setExpenseForm(f => ({ ...f, subCategoryId: e.target.value }))}
+                      disabled={!expenseForm.categoryId}
+                    >
+                      <option value="">Select sub-category</option>
+                      {expenseForm.categoryId && categories
+                        .filter(c => c.parent?.id === Number(expenseForm.categoryId))
+                        .map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
                     </select>
+                    {!expenseForm.categoryId && (
+                      <p className="text-xs text-gray-400 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Select a main category first
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Payment Type field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      Payment Method
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'credit-card', label: 'Credit Card', icon: '💳' },
+                        { value: 'debit-card', label: 'Debit Card', icon: '💳' },
+                        { value: 'cash', label: 'Cash', icon: '💵' },
+                        { value: 'online', label: 'Online', icon: '🌐' },
+                        { value: 'bank-transfer', label: 'Bank Transfer', icon: '🏦' },
+                        { value: 'others', label: 'Others', icon: '🔧' }
+                      ].map(payment => (
+                        <label key={payment.value} className="relative">
+                          <input
+                            type="radio"
+                            name="paymentType"
+                            value={payment.value}
+                            checked={expenseForm.paymentType === payment.value}
+                            onChange={(e) => setExpenseForm(prev => ({ ...prev, paymentType: e.target.value }))}
+                            className="sr-only peer"
+                          />
+                          <div className="p-3 border-2 border-gray-200 rounded-lg cursor-pointer transition-all duration-200 peer-checked:border-blue-500 peer-checked:bg-blue-50/50 hover:border-gray-300 hover:bg-gray-50/50 text-center">
+                            <div className="text-lg mb-1">{payment.icon}</div>
+                            <div className="text-xs font-medium text-gray-700">{payment.label}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Transaction Date field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Transaction Date & Time
+                    </label>
+                    <input 
+                      type="datetime-local"
+                      className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/80" 
+                      value={expenseForm.transactionDate} 
+                      onChange={e => setExpenseForm(f => ({ ...f, transactionDate: e.target.value }))} 
+                    />
                   </div>
 
                   {/* Tags field */}

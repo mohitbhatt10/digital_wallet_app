@@ -3,7 +3,7 @@ package com.example.wallet.model;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,9 +30,11 @@ public class Expense {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    private LocalDate date;
+    private LocalDateTime transactionDate;
 
     private String description;
+    
+    private String paymentType;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -49,9 +51,12 @@ public class Expense {
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
 
-    public LocalDate getDate() { return date; }
-    public void setDate(LocalDate date) { this.date = date; }
+    public LocalDateTime getTransactionDate() { return transactionDate; }
+    public void setTransactionDate(LocalDateTime transactionDate) { this.transactionDate = transactionDate; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    
+    public String getPaymentType() { return paymentType; }
+    public void setPaymentType(String paymentType) { this.paymentType = paymentType; }
 }

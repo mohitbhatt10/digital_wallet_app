@@ -6,7 +6,7 @@ import com.example.wallet.model.*;
 import com.example.wallet.repository.*;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -25,8 +25,9 @@ public class ExpenseService {
         Expense e = new Expense();
         e.setUser(user);
         e.setAmount(req.getAmount());
-        e.setDate(req.getDate() != null ? req.getDate() : LocalDate.now());
+        e.setTransactionDate(req.getTransactionDate() != null ? req.getTransactionDate() : LocalDateTime.now());
         e.setDescription(req.getDescription());
+        e.setPaymentType(req.getPaymentType());
         if (req.getCategoryId() != null) {
             categoryRepository.findById(req.getCategoryId()).ifPresent(e::setCategory);
         }
@@ -50,8 +51,9 @@ public class ExpenseService {
         ExpenseResponse r = new ExpenseResponse();
         r.setId(e.getId());
         r.setAmount(e.getAmount());
-        r.setDate(e.getDate());
+        r.setTransactionDate(e.getTransactionDate());
         r.setDescription(e.getDescription());
+        r.setPaymentType(e.getPaymentType());
         if (e.getCategory() != null) {
             r.setCategory(new ExpenseResponse.CategoryRef(e.getCategory().getId(), e.getCategory().getName()));
         }
