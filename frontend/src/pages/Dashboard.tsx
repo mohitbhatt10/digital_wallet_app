@@ -17,7 +17,7 @@ export default function Dashboard() {
   const [showTag, setShowTag] = useState(false)
   const [loading, setLoading] = useState(false)
   const [expenseForm, setExpenseForm] = useState({ amount: '', description: '', categoryId: '', tagIds: [] as number[] })
-  const [categoryForm, setCategoryForm] = useState({ name: '', parentId: '' })
+  const [categoryForm, setCategoryForm] = useState({ name: '', parentId: '', categoryType: '', subCategories: [''] })
   const [tagForm, setTagForm] = useState({ name: '' })
   const [error, setError] = useState<string|undefined>()
 
@@ -65,13 +65,34 @@ export default function Dashboard() {
   async function submitCategory(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setError(undefined)
     try {
-      const created = await createCategory({ 
-        name: categoryForm.name, 
-        parentId: categoryForm.parentId ? Number(categoryForm.parentId) : undefined 
-      })
-      setCategories(prev => [...prev, created])
+      if (categoryForm.categoryType === 'main') {
+        // Create main category first
+        const mainCategory = await createCategory({ name: categoryForm.name })
+        const newCategories = [mainCategory]
+        
+        // Create sub-categories
+        for (const subName of categoryForm.subCategories) {
+          if (subName.trim()) {
+            const subCategory = await createCategory({ 
+              name: subName.trim(), 
+              parentId: mainCategory.id 
+            })
+            newCategories.push(subCategory)
+          }
+        }
+        
+        setCategories(prev => [...prev, ...newCategories])
+      } else {
+        // Create single sub-category
+        const created = await createCategory({ 
+          name: categoryForm.name, 
+          parentId: categoryForm.parentId ? Number(categoryForm.parentId) : undefined 
+        })
+        setCategories(prev => [...prev, created])
+      }
+      
       setShowCategory(false)
-      setCategoryForm({ name: '', parentId: '' })
+      setCategoryForm({ name: '', parentId: '', categoryType: '', subCategories: [''] })
     } catch { setError('Failed to create category') } finally { setLoading(false) }
   }
 
@@ -160,81 +181,454 @@ export default function Dashboard() {
         </div>
       </main>
       {(showExpense || showCategory || showTag) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="card w-full max-w-lg p-6 relative">
-            <button className="absolute top-3 right-3 text-zinc-400 hover:text-zinc-600" onClick={() => { setShowExpense(false); setShowCategory(false); setShowTag(false); }}>✕</button>
-            {error && <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</div>}
-            {showExpense && (
-              <form onSubmit={submitExpense} className="space-y-5">
-                <h2 className="text-lg font-semibold">Add Expense</h2>
-                <div className="grid gap-1">
-                  <label className="text-xs font-medium text-zinc-600">Amount</label>
-                  <input required type="number" step="0.01" className="input" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} />
-                </div>
-                <div className="grid gap-1">
-                  <label className="text-xs font-medium text-zinc-600">Description</label>
-                  <input className="input" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} />
-                </div>
-                <div className="grid gap-1">
-                  <label className="text-xs font-medium text-zinc-600">Category</label>
-                  <select className="input" value={expenseForm.categoryId} onChange={e => setExpenseForm(f => ({ ...f, categoryId: e.target.value }))}>
-                    <option value="">None</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.parent ? `${c.parent.name} > ${c.name}` : c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid gap-1">
-                  <label className="text-xs font-medium text-zinc-600">Tags</label>
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map(t => {
-                      const active = expenseForm.tagIds.includes(t.id)
-                      return <button type="button" key={t.id} onClick={() => toggleTag(t.id)} className={`px-3 py-1 rounded-full text-xs border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-zinc-300 text-zinc-600 hover:bg-zinc-100'}`}>{t.name}</button>
-                    })}
-                    {tags.length === 0 && <span className="text-xs text-zinc-400">No tags yet</span>}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300">
+          <div className="bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl w-full max-w-lg relative overflow-hidden transform transition-all duration-500 scale-100 opacity-100">
+            {/* Header gradient overlay */}
+            <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10"></div>
+            
+            {/* Close button */}
+            <button 
+              className="absolute top-6 right-6 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border border-white/40 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-white/90 transition-all duration-200 hover:scale-105 shadow-sm" 
+              onClick={() => { setShowExpense(false); setShowCategory(false); setShowTag(false); }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            {/* Error message */}
+            {error && (
+              <div className="mx-8 mt-8 p-4 text-sm text-red-700 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-xl flex items-center gap-3">
+                <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
+              </div>
+            )}
+            
+            <div className="relative p-8 pt-12">
+              {showExpense && (
+                <form onSubmit={submitExpense} className="space-y-6">
+                  {/* Title with icon */}
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-800">Add New Expense</h2>
+                      <p className="text-sm text-gray-500">Track your spending and categorize it</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" className="btn-ghost" onClick={() => setShowExpense(false)}>Cancel</button>
-                  <button disabled={loading} className="btn-primary" type="submit">{loading ? 'Saving...' : 'Save'}</button>
-                </div>
-              </form>
-            )}
-            {showCategory && (
-              <form onSubmit={submitCategory} className="space-y-5">
-                <h2 className="text-lg font-semibold">New Category</h2>
-                <div className="grid gap-1">
-                  <label className="text-xs font-medium text-zinc-600">Name</label>
-                  <input required className="input" value={categoryForm.name} onChange={e => setCategoryForm(f => ({ ...f, name: e.target.value }))} />
-                </div>
-                <div className="grid gap-1">
-                  <label className="text-xs font-medium text-zinc-600">Parent Category (optional)</label>
-                  <select className="input" value={categoryForm.parentId} onChange={e => setCategoryForm(f => ({ ...f, parentId: e.target.value }))}>
-                    <option value="">None (Main Category)</option>
-                    {categories.filter(c => !c.parent).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" className="btn-ghost" onClick={() => setShowCategory(false)}>Cancel</button>
-                  <button disabled={loading} className="btn-primary" type="submit">{loading ? 'Saving...' : 'Save'}</button>
-                </div>
-              </form>
-            )}
-            {showTag && (
-              <form onSubmit={submitTag} className="space-y-5">
-                <h2 className="text-lg font-semibold">New Tag</h2>
-                <div className="grid gap-1">
-                  <label className="text-xs font-medium text-zinc-600">Name</label>
-                  <input required className="input" value={tagForm.name} onChange={e => setTagForm(f => ({ ...f, name: e.target.value }))} />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" className="btn-ghost" onClick={() => setShowTag(false)}>Cancel</button>
-                  <button disabled={loading} className="btn-primary" type="submit">{loading ? 'Saving...' : 'Save'}</button>
-                </div>
-              </form>
-            )}
+
+                  {/* Amount field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                      Amount
+                    </label>
+                    <div className="relative">
+                      <input 
+                        required 
+                        type="number" 
+                        step="0.01" 
+                        className="w-full px-4 py-3 pl-8 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/80" 
+                        value={expenseForm.amount} 
+                        onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} 
+                        placeholder="0.00"
+                      />
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                    </div>
+                  </div>
+
+                  {/* Description field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Description
+                    </label>
+                    <input 
+                      className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/80" 
+                      value={expenseForm.description} 
+                      onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} 
+                      placeholder="What did you spend on?"
+                    />
+                  </div>
+
+                  {/* Category field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      Category
+                    </label>
+                    <select className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/80 appearance-none" value={expenseForm.categoryId} onChange={e => setExpenseForm(f => ({ ...f, categoryId: e.target.value }))}>
+                      <option value="">Select a category</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.parent ? `${c.parent.name} > ${c.name}` : c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Tags field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      Tags
+                    </label>
+                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50/80 backdrop-blur-sm rounded-xl border border-gray-200/50 min-h-[3rem]">
+                      {tags.map(t => {
+                        const active = expenseForm.tagIds.includes(t.id)
+                        return (
+                          <button 
+                            type="button" 
+                            key={t.id} 
+                            onClick={() => toggleTag(t.id)} 
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 ${active 
+                              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25' 
+                              : 'bg-white/80 border border-gray-200 text-gray-600 hover:bg-white hover:shadow-md'
+                            }`}
+                          >
+                            {t.name}
+                          </button>
+                        )
+                      })}
+                      {tags.length === 0 && (
+                        <div className="flex items-center gap-2 text-gray-400 text-sm">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                          </svg>
+                          No tags created yet
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex justify-end gap-3 pt-6 border-t border-gray-100/50">
+                    <button 
+                      type="button" 
+                      className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium" 
+                      onClick={() => setShowExpense(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      disabled={loading} 
+                      className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none" 
+                      type="submit"
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </div>
+                      ) : 'Save Expense'}
+                    </button>
+                  </div>
+                </form>
+              )}
+              
+              {showCategory && (
+                <form onSubmit={submitCategory} className="space-y-6">
+                  {/* Title with icon */}
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-800">Create Category</h2>
+                      <p className="text-sm text-gray-500">Organize your expenses with categories</p>
+                    </div>
+                  </div>
+
+                  {/* Category Type Selection */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold text-gray-700">Category Type</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="relative">
+                        <input
+                          type="radio"
+                          name="categoryType"
+                          value="main"
+                          checked={categoryForm.categoryType === 'main'}
+                          onChange={(e) => setCategoryForm(prev => ({ 
+                            ...prev, 
+                            categoryType: e.target.value,
+                            parentId: '',
+                            subCategories: ['']
+                          }))}
+                          className="sr-only peer"
+                        />
+                        <div className="p-4 border-2 border-gray-200 rounded-xl cursor-pointer transition-all duration-200 peer-checked:border-purple-500 peer-checked:bg-purple-50/50 hover:border-gray-300 hover:bg-gray-50/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center peer-checked:bg-purple-500 peer-checked:text-white">
+                              <svg className="w-4 h-4 text-purple-600 peer-checked:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-800">Main Category</div>
+                              <div className="text-xs text-gray-500">Create with sub-categories</div>
+                            </div>
+                          </div>
+                        </div>
+                      </label>
+                      <label className="relative">
+                        <input
+                          type="radio"
+                          name="categoryType"
+                          value="sub"
+                          checked={categoryForm.categoryType === 'sub'}
+                          onChange={(e) => setCategoryForm(prev => ({ 
+                            ...prev, 
+                            categoryType: e.target.value,
+                            subCategories: ['']
+                          }))}
+                          className="sr-only peer"
+                        />
+                        <div className="p-4 border-2 border-gray-200 rounded-xl cursor-pointer transition-all duration-200 peer-checked:border-blue-500 peer-checked:bg-blue-50/50 hover:border-gray-300 hover:bg-gray-50/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center peer-checked:bg-blue-500 peer-checked:text-white">
+                              <svg className="w-4 h-4 text-blue-600 peer-checked:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-800">Sub-Category</div>
+                              <div className="text-xs text-gray-500">Add to existing category</div>
+                            </div>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Parent Category Selection (Sub-category only) */}
+                  {categoryForm.categoryType === 'sub' && (
+                    <div className="space-y-2 transform transition-all duration-300">
+                      <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                        </svg>
+                        Parent Category
+                      </label>
+                      <select
+                        className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/80 appearance-none"
+                        value={categoryForm.parentId}
+                        onChange={(e) => setCategoryForm(prev => ({ ...prev, parentId: e.target.value }))}
+                        required
+                      >
+                        <option value="">Select a parent category</option>
+                        {categories.filter(c => !c.parent).map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Category Name */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {categoryForm.categoryType === 'main' ? 'Main Category Name' : 'Category Name'}
+                    </label>
+                    <input
+                      required
+                      className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200 hover:bg-white/80"
+                      value={categoryForm.name}
+                      onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder={categoryForm.categoryType === 'main' ? 'e.g. Transportation' : 'e.g. Public Transport'}
+                    />
+                  </div>
+
+                  {/* Sub-categories (Main category only) */}
+                  {categoryForm.categoryType === 'main' && (
+                    <div className="space-y-3 transform transition-all duration-300">
+                      <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Sub-Categories
+                        <span className="text-xs text-gray-400 font-normal">(optional)</span>
+                      </label>
+                      <div className="space-y-3 p-4 bg-gray-50/80 backdrop-blur-sm rounded-xl border border-gray-200/50">
+                        {categoryForm.subCategories.map((subCat, index) => (
+                          <div key={index} className="flex gap-3 items-center">
+                            <div className="flex-1">
+                              <input
+                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all duration-200 text-sm"
+                                value={subCat}
+                                onChange={(e) => {
+                                  const updated = [...categoryForm.subCategories]
+                                  updated[index] = e.target.value
+                                  setCategoryForm(prev => ({ ...prev, subCategories: updated }))
+                                }}
+                                placeholder={`Sub-category ${index + 1}`}
+                              />
+                            </div>
+                            {categoryForm.subCategories.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = categoryForm.subCategories.filter((_, i) => i !== index)
+                                  setCategoryForm(prev => ({ ...prev, subCategories: updated }))
+                                }}
+                                className="w-8 h-8 rounded-lg bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-700 transition-all duration-200 flex items-center justify-center"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setCategoryForm(prev => ({ 
+                            ...prev, 
+                            subCategories: [...prev.subCategories, ''] 
+                          }))}
+                          className="flex items-center gap-2 text-purple-600 hover:text-purple-700 text-sm font-medium transition-colors duration-200"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          Add another sub-category
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex justify-end gap-3 pt-6 border-t border-gray-100/50">
+                    <button 
+                      type="button" 
+                      className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium" 
+                      onClick={() => {
+                        setShowCategory(false)
+                        setCategoryForm({ name: '', parentId: '', categoryType: '', subCategories: [''] })
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      disabled={loading || !categoryForm.categoryType || !categoryForm.name} 
+                      className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none" 
+                      type="submit"
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Creating...
+                        </div>
+                      ) : 'Create Category'}
+                    </button>
+                  </div>
+                </form>
+              )}
+              
+              {showTag && (
+                <form onSubmit={submitTag} className="space-y-6">
+                  {/* Title with icon */}
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-800">Create Tag</h2>
+                      <p className="text-sm text-gray-500">Add labels to categorize your expenses</p>
+                    </div>
+                  </div>
+
+                  {/* Tag Name */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Tag Name
+                    </label>
+                    <input 
+                      required 
+                      className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400 transition-all duration-200 hover:bg-white/80" 
+                      value={tagForm.name} 
+                      onChange={e => setTagForm(f => ({ ...f, name: e.target.value }))} 
+                      placeholder="e.g. Work, Personal, Urgent"
+                    />
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Tags help you filter and organize expenses across categories
+                    </div>
+                  </div>
+
+                  {/* Tag Preview */}
+                  {tagForm.name && (
+                    <div className="space-y-2 transform transition-all duration-300">
+                      <label className="text-sm font-semibold text-gray-700">Preview</label>
+                      <div className="p-4 bg-gray-50/80 backdrop-blur-sm rounded-xl border border-gray-200/50">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-full text-sm font-medium shadow-lg shadow-pink-500/25">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                          </svg>
+                          {tagForm.name}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex justify-end gap-3 pt-6 border-t border-gray-100/50">
+                    <button 
+                      type="button" 
+                      className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium" 
+                      onClick={() => setShowTag(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      disabled={loading} 
+                      className="px-8 py-3 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none" 
+                      type="submit"
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Creating...
+                        </div>
+                      ) : 'Create Tag'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}
