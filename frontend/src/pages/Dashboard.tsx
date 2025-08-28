@@ -39,6 +39,25 @@ export default function Dashboard() {
   const [showAllExpenseSystemTags, setShowAllExpenseSystemTags] = useState(false)
   const [error, setError] = useState<string|undefined>()
 
+  // Calculate current month's spending
+  const getCurrentMonthSpending = () => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth()
+    
+    return expenses
+      .filter(expense => {
+        const expenseDate = new Date(expense.transactionDate)
+        return expenseDate.getFullYear() === currentYear && expenseDate.getMonth() === currentMonth
+      })
+      .reduce((total, expense) => total + expense.amount, 0)
+  }
+
+  const currentMonthSpending = getCurrentMonthSpending()
+  const spendingPercentage = currentBudget?.amount 
+    ? (currentMonthSpending / currentBudget.amount) * 100 
+    : 0
+
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const token = params.get('token')
@@ -261,9 +280,66 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="card p-5">
-            <h3 className="text-sm font-medium text-zinc-600">This Month Spend</h3>
-            <p className="mt-2 text-2xl font-semibold tracking-tight">$0.00</p>
-            <p className="mt-1 text-xs text-zinc-500">Create expenses to see insights</p>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-zinc-600">This Month Spend</h3>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                currentBudget && spendingPercentage > 100 
+                  ? 'bg-red-100' 
+                  : currentBudget && spendingPercentage > 75 
+                  ? 'bg-yellow-100' 
+                  : 'bg-green-100'
+              }`}>
+                <svg className={`w-4 h-4 ${
+                  currentBudget && spendingPercentage > 100 
+                    ? 'text-red-600' 
+                    : currentBudget && spendingPercentage > 75 
+                    ? 'text-yellow-600' 
+                    : 'text-green-600'
+                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+              </div>
+            </div>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">
+              ${currentMonthSpending.toFixed(2)}
+            </p>
+            {currentBudget ? (
+              <div className="mt-3 space-y-2">
+                <div className="flex justify-between text-xs text-zinc-500">
+                  <span>Budget: ${currentBudget.amount.toFixed(2)}</span>
+                  <span className={spendingPercentage > 100 ? 'text-red-600 font-medium' : ''}>
+                    {spendingPercentage.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      spendingPercentage > 100 
+                        ? 'bg-red-600' 
+                        : spendingPercentage > 90 
+                        ? 'bg-red-500' 
+                        : spendingPercentage > 75 
+                        ? 'bg-yellow-500' 
+                        : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(spendingPercentage, 100)}%` }}
+                  ></div>
+                </div>
+                <p className={`text-xs ${
+                  currentMonthSpending > currentBudget.amount 
+                    ? 'text-red-600 font-medium' 
+                    : 'text-zinc-500'
+                }`}>
+                  {currentMonthSpending <= currentBudget.amount 
+                    ? `$${(currentBudget.amount - currentMonthSpending).toFixed(2)} remaining`
+                    : `$${(currentMonthSpending - currentBudget.amount).toFixed(2)} over budget`
+                  }
+                </p>
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-zinc-500">Set budget to track progress</p>
+            )}
           </div>
             <div className="card p-5">
             <h3 className="text-sm font-medium text-zinc-600">Categories</h3>
