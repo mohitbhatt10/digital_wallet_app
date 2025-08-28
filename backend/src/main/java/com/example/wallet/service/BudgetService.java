@@ -24,4 +24,8 @@ public class BudgetService {
         b.setAmount(req.getAmount());
         return budgetRepository.save(b);
     }
+
+    public Budget  findByUserAndYearAndMonth(User user, int year, int month) {
+        return budgetRepository.findByUserAndYearAndMonth(user, year, month).orElse(null);
+    }
 }

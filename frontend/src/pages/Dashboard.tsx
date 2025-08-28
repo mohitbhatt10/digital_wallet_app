@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { listCategories, createCategory, Category } from '../api/categories'
 import { listTags, createTag, Tag } from '../api/tags'
 import { listRecentExpenses, createExpense, Expense } from '../api/expenses'
+import { getCurrentBudget, upsertBudget, getBudgetByMonthYear, Budget } from '../api/budgets'
 
 export default function Dashboard() {
   const location = useLocation()
@@ -12,9 +13,11 @@ export default function Dashboard() {
   const [categories, setCategories] = useState<Category[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [currentBudget, setCurrentBudget] = useState<Budget | null>(null)
   const [showExpense, setShowExpense] = useState(false)
   const [showCategory, setShowCategory] = useState(false)
   const [showTag, setShowTag] = useState(false)
+  const [showBudget, setShowBudget] = useState(false)
   const [loading, setLoading] = useState(false)
   const [expenseForm, setExpenseForm] = useState({ 
     amount: '', 
@@ -27,6 +30,11 @@ export default function Dashboard() {
   })
   const [categoryForm, setCategoryForm] = useState({ name: '', parentId: '', categoryType: '', subCategories: [''] })
   const [tagForm, setTagForm] = useState({ name: '' })
+  const [budgetForm, setBudgetForm] = useState({ 
+    amount: '',
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1 // JavaScript months are 0-indexed
+  })
   const [error, setError] = useState<string|undefined>()
 
   useEffect(() => {
@@ -44,6 +52,19 @@ export default function Dashboard() {
       listCategories().then(setCategories)
       listTags().then(setTags)
       listRecentExpenses().then(setExpenses)
+      
+      // Load current month's budget and prompt user if not set
+      getCurrentBudget().then(budget => {
+        setCurrentBudget(budget)
+        if (!budget) {
+          // Show budget modal if no budget is set for current month
+          setShowBudget(true)
+        }
+      }).catch(err => {
+        console.warn('Failed to load budget:', err)
+        // Still show budget modal if there's an error
+        setShowBudget(true)
+      })
     }
   }, [user])
 
@@ -124,6 +145,46 @@ export default function Dashboard() {
     } catch { setError('Failed to create tag') } finally { setLoading(false) }
   }
 
+  async function submitBudget(e: React.FormEvent) {
+    e.preventDefault(); setLoading(true); setError(undefined)
+    try {
+      const budget = await upsertBudget({
+        year: budgetForm.year,
+        month: budgetForm.month,
+        amount: parseFloat(budgetForm.amount)
+      })
+      
+      // Only update the displayed budget if user is setting budget for current month
+      const currentDate = new Date()
+      const currentYear = currentDate.getFullYear()
+      const currentMonth = currentDate.getMonth() + 1
+      
+      if (budgetForm.year === currentYear && budgetForm.month === currentMonth) {
+        setCurrentBudget(budget)
+      }
+      
+      setShowBudget(false)
+      setBudgetForm({
+        amount: '',
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1
+      })
+    } catch { setError('Failed to save budget') } finally { setLoading(false) }
+  }
+
+  async function fetchBudgetForMonthYear(year: number, month: number) {
+    try {
+      const budget = await getBudgetByMonthYear(year, month)
+      setBudgetForm(prev => ({ 
+        ...prev, 
+        amount: budget ? budget.amount.toString() : '0' 
+      }))
+    } catch (err) {
+      console.warn('Failed to fetch budget for selected month/year:', err)
+      setBudgetForm(prev => ({ ...prev, amount: '0' }))
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -152,9 +213,39 @@ export default function Dashboard() {
           <div className="card p-5 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-60" />
             <div className="relative">
-              <h3 className="text-sm font-medium text-zinc-600">Total Budget</h3>
-              <p className="mt-2 text-2xl font-semibold tracking-tight">$0.00</p>
-              <p className="mt-1 text-xs text-zinc-500">No budgets created</p>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-zinc-600">
+                  {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Budget
+                </h3>
+                <button
+                  onClick={() => {
+                    // Pre-fill form with current budget if it exists, otherwise load from API
+                    if (currentBudget) {
+                      setBudgetForm({
+                        amount: currentBudget.amount.toString(),
+                        year: currentBudget.year,
+                        month: currentBudget.month
+                      })
+                    } else {
+                      // Load budget for current month/year from API
+                      const currentDate = new Date()
+                      const currentYear = currentDate.getFullYear()
+                      const currentMonth = currentDate.getMonth() + 1
+                      fetchBudgetForMonthYear(currentYear, currentMonth)
+                    }
+                    setShowBudget(true)
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+                >
+                  {currentBudget ? 'Edit' : 'Set Budget'}
+                </button>
+              </div>
+              <p className="mt-2 text-2xl font-semibold tracking-tight">
+                ${currentBudget ? currentBudget.amount.toFixed(2) : '0.00'}
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+                {currentBudget ? 'Click Edit to modify' : 'Set your monthly budget to track spending'}
+              </p>
             </div>
           </div>
           <div className="card p-5">
@@ -203,7 +294,7 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
-      {(showExpense || showCategory || showTag) && (
+      {(showExpense || showCategory || showTag || showBudget) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300 overflow-y-auto">
           <div className="bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl w-full max-w-4xl relative overflow-hidden transform transition-all duration-500 scale-100 opacity-100 my-8">
             {/* Header gradient overlay */}
@@ -212,7 +303,7 @@ export default function Dashboard() {
             {/* Close button */}
             <button 
               className="absolute top-6 right-6 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border border-white/40 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-white/90 transition-all duration-200 hover:scale-105 shadow-sm" 
-              onClick={() => { setShowExpense(false); setShowCategory(false); setShowTag(false); }}
+              onClick={() => { setShowExpense(false); setShowCategory(false); setShowTag(false); setShowBudget(false); }}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -750,6 +841,135 @@ export default function Dashboard() {
                           Creating...
                         </div>
                       ) : 'Create Tag'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {showBudget && (
+                <form onSubmit={submitBudget} className="space-y-6">
+                  {/* Title with icon */}
+                  <div className="flex items-center gap-3 sticky top-0 bg-white/95 backdrop-blur-sm py-4 px-6 border-b border-gray-100/50 z-10">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-800">Set Monthly Budget</h2>
+                      <p className="text-sm text-gray-500">Plan your spending for the month</p>
+                    </div>
+                  </div>
+
+                  <div className="px-6 pb-4">
+                    {/* Month and Year Selection */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Month
+                        </label>
+                        <select
+                          required
+                          value={budgetForm.month}
+                          onChange={(e) => {
+                            const newMonth = parseInt(e.target.value)
+                            setBudgetForm(prev => ({ ...prev, month: newMonth }))
+                            fetchBudgetForMonthYear(budgetForm.year, newMonth)
+                          }}
+                          className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all duration-200"
+                        >
+                          {Array.from({length: 12}, (_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              {new Date(2023, i, 1).toLocaleString('default', { month: 'long' })}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Year
+                        </label>
+                        <select
+                          required
+                          value={budgetForm.year}
+                          onChange={(e) => {
+                            const newYear = parseInt(e.target.value)
+                            setBudgetForm(prev => ({ ...prev, year: newYear }))
+                            fetchBudgetForMonthYear(newYear, budgetForm.month)
+                          }}
+                          className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all duration-200"
+                        >
+                          {Array.from({length: 5}, (_, i) => (
+                            <option key={i} value={new Date().getFullYear() + i - 2}>
+                              {new Date().getFullYear() + i - 2}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Budget Amount */}
+                    <div className="space-y-2 mt-6">
+                      <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                        Budget Amount *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">$</span>
+                        <input
+                          required
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={budgetForm.amount}
+                          onChange={(e) => setBudgetForm(prev => ({ ...prev, amount: e.target.value }))}
+                          className="w-full pl-8 pr-4 py-3 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all duration-200 hover:bg-white/80"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">Set your spending limit for this month</p>
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex justify-end gap-3 pt-6 border-t border-gray-100/50 sticky bottom-0 bg-white/95 backdrop-blur-sm px-6 pb-2 z-10 mt-6">
+                    <button 
+                      type="button" 
+                      className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium" 
+                      onClick={() => {
+                        setShowBudget(false)
+                        setBudgetForm({
+                          amount: '',
+                          year: new Date().getFullYear(),
+                          month: new Date().getMonth() + 1
+                        })
+                      }}
+                    >
+                      {currentBudget ? 'Cancel' : 'Skip for Now'}
+                    </button>
+                    <button 
+                      disabled={loading} 
+                      className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none" 
+                      type="submit"
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </div>
+                      ) : (currentBudget ? 'Update Budget' : 'Set Budget')}
                     </button>
                   </div>
                 </form>
