@@ -36,6 +36,7 @@ export default function Dashboard() {
     month: new Date().getMonth() + 1 // JavaScript months are 0-indexed
   })
   const [showAllSystemTags, setShowAllSystemTags] = useState(false)
+  const [showAllExpenseSystemTags, setShowAllExpenseSystemTags] = useState(false)
   const [error, setError] = useState<string|undefined>()
 
   useEffect(() => {
@@ -88,6 +89,7 @@ export default function Dashboard() {
       const created = await createExpense(payload)
       setExpenses(prev => [created, ...prev])
       setShowExpense(false)
+      setShowAllExpenseSystemTags(false)
       setExpenseForm({ 
         amount: '', 
         description: '', 
@@ -216,7 +218,7 @@ export default function Dashboard() {
           <div className="flex gap-2">
             <button className="btn-outline text-xs" onClick={() => setShowCategory(true)}>New Category</button>
             <button className="btn-outline text-xs" onClick={() => { setShowTag(true); setShowAllSystemTags(false); }}>New Tag</button>
-            <button className="btn-primary text-xs" onClick={() => setShowExpense(true)}>Add Expense</button>
+            <button className="btn-primary text-xs" onClick={() => { setShowExpense(true); setShowAllExpenseSystemTags(false); }}>Add Expense</button>
           </div>
         </div>
         <div className="mt-6 grid gap-6 md:grid-cols-3">
@@ -273,7 +275,7 @@ export default function Dashboard() {
           <div className="lg:col-span-2 card p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Recent Expenses</h2>
-              <button className="btn-outline text-xs" onClick={() => setShowExpense(true)}>Add</button>
+              <button className="btn-outline text-xs" onClick={() => { setShowExpense(true); setShowAllExpenseSystemTags(false); }}>Add</button>
             </div>
             {expenses.length === 0 && <div className="text-sm text-zinc-500">No expenses yet.</div>}
             <ul className="space-y-3">
@@ -313,7 +315,7 @@ export default function Dashboard() {
             {/* Close button */}
             <button 
               className="absolute top-6 right-6 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border border-white/40 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-white/90 transition-all duration-200 hover:scale-105 shadow-sm" 
-              onClick={() => { setShowExpense(false); setShowCategory(false); setShowTag(false); setShowBudget(false); setShowAllSystemTags(false); }}
+              onClick={() => { setShowExpense(false); setShowCategory(false); setShowTag(false); setShowBudget(false); setShowAllSystemTags(false); setShowAllExpenseSystemTags(false); }}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -505,7 +507,9 @@ export default function Dashboard() {
                       </svg>
                       Tags
                     </label>
-                    <div className="p-3 bg-gray-50/80 backdrop-blur-sm rounded-xl border border-gray-200/50 min-h-[3rem] space-y-3">
+                    <div className={`p-3 bg-gray-50/80 backdrop-blur-sm rounded-xl border border-gray-200/50 min-h-[3rem] space-y-3 transition-all duration-300 ${
+                      showAllExpenseSystemTags ? 'max-h-64 overflow-y-auto' : 'max-h-32 overflow-hidden'
+                    }`}>
                       {/* System Tags */}
                       {tags.filter(t => t.isSystem).length > 0 && (
                         <div>
@@ -515,8 +519,11 @@ export default function Dashboard() {
                             </svg>
                             Predefined Tags
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            {tags.filter(t => t.isSystem).map(t => {
+                          <div className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
+                            {(showAllExpenseSystemTags 
+                              ? tags.filter(t => t.isSystem) 
+                              : tags.filter(t => t.isSystem).slice(0, 10)
+                            ).map(t => {
                               const active = expenseForm.tagIds.includes(t.id)
                               return (
                                 <button 
@@ -532,6 +539,26 @@ export default function Dashboard() {
                                 </button>
                               )
                             })}
+                            {tags.filter(t => t.isSystem).length > 10 && (
+                              <button
+                                type="button"
+                                onClick={() => setShowAllExpenseSystemTags(!showAllExpenseSystemTags)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-full border border-emerald-200 transition-colors duration-200 font-medium"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                    d={showAllExpenseSystemTags 
+                                      ? "M5 15l7-7 7 7" 
+                                      : "M19 9l-7 7-7-7"
+                                    } 
+                                  />
+                                </svg>
+                                {showAllExpenseSystemTags 
+                                  ? 'Show Less' 
+                                  : `+${tags.filter(t => t.isSystem).length - 10} more`
+                                }
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}
@@ -582,7 +609,7 @@ export default function Dashboard() {
                     <button 
                       type="button" 
                       className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium" 
-                      onClick={() => setShowExpense(false)}
+                      onClick={() => { setShowExpense(false); setShowAllExpenseSystemTags(false); }}
                     >
                       Cancel
                     </button>
