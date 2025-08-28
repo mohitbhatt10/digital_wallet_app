@@ -30,45 +30,44 @@ public class DataInitializationService implements CommandLineRunner {
 
         // Define predefined tags with categories
         List<String> predefinedTagNames = Arrays.asList(
-            // Priority & Urgency
-            "Urgent", "High Priority", "Low Priority", "Emergency",
-            
-            // Payment Context
-            "Cash Payment", "Online Payment", "Card Payment", "Mobile Payment", "Bank Transfer",
-            
-            // Location & Context
-            "Work", "Personal", "Home", "Office", "Travel", "Business Trip", "Vacation",
-            
-            // Time-based
-            "Weekly", "Monthly", "Daily", "One-time", "Recurring", "Annual",
-            
-            // Financial Categories
-            "Tax Deductible", "Reimbursable", "Investment", "Savings", "Debt", "Loan",
-            
-            // Lifestyle
-            "Health", "Fitness", "Education", "Entertainment", "Social", "Family",
-            
-            // Quality & Type
-            "Essential", "Optional", "Luxury", "Necessity", "Planned", "Unplanned",
-            
-            // Special Occasions
-            "Birthday", "Anniversary", "Holiday", "Gift", "Celebration", "Special Event",
-            
-            // Work-related
-            "Business Expense", "Office Supplies", "Professional Development", "Networking",
-            
-            // Maintenance & Services
-            "Maintenance", "Repair", "Service", "Subscription", "Membership",
-            
-            // Food & Dining
-            "Fast Food", "Restaurant", "Groceries", "Takeout", "Dining Out",
-            
-            // Transportation
-            "Public Transport", "Fuel", "Parking", "Taxi", "Ride Share",
-            
-            // Shopping
-            "Online Shopping", "In-Store", "Bulk Purchase", "Sale", "Discount"
-        );
+                // Priority & Urgency
+                "Urgent", "High Priority", "Low Priority", "Emergency",
+
+                // Payment Context
+                "Cash Payment", "Online Payment", "Card Payment", "Mobile Payment", "Bank Transfer",
+
+                // Location & Context
+                "Work", "Personal", "Home", "Office", "Travel", "Business Trip", "Vacation",
+
+                // Time-based
+                "Weekly", "Monthly", "Daily", "One-time", "Recurring", "Annual",
+
+                // Financial Categories
+                "Tax Deductible", "Reimbursable", "Investment", "Savings", "Debt", "Loan",
+
+                // Lifestyle
+                "Health", "Fitness", "Education", "Entertainment", "Social", "Family",
+
+                // Quality & Type
+                "Essential", "Optional", "Luxury", "Necessity", "Planned", "Unplanned",
+
+                // Special Occasions
+                "Birthday", "Anniversary", "Holiday", "Gift", "Celebration", "Special Event",
+
+                // Work-related
+                "Business Expense", "Office Supplies", "Professional Development", "Networking",
+
+                // Maintenance & Services
+                "Maintenance", "Repair", "Service", "Subscription", "Membership",
+
+                // Food & Dining
+                "Fast Food", "Restaurant", "Groceries", "Takeout", "Dining Out",
+
+                // Transportation
+                "Public Transport", "Fuel", "Parking", "Taxi", "Ride Share",
+
+                // Shopping
+                "Online Shopping", "In-Store", "Bulk Purchase", "Sale", "Discount");
 
         // Create and save system tags
         for (String tagName : predefinedTagNames) {

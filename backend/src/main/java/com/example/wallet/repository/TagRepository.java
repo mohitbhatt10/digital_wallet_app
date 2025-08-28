@@ -8,8 +8,9 @@ import java.util.List;
 
 public interface TagRepository extends JpaRepository<Tag, Long> {
     List<Tag> findByOwner(User owner);
+
     List<Tag> findByIsSystemTrue();
-    
+
     @Query("SELECT t FROM Tag t WHERE t.owner = ?1 OR t.isSystem = true ORDER BY t.isSystem DESC, t.name ASC")
     List<Tag> findByOwnerOrSystemTags(User owner);
 }
