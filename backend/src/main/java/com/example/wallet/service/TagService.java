@@ -20,10 +20,11 @@ public class TagService {
         Tag t = new Tag();
         t.setName(req.getName());
         t.setOwner(owner);
+        t.setIsSystem(false); // User-created tags are not system tags
         return tagRepository.save(t);
     }
 
     public List<Tag> list(User owner) {
-        return tagRepository.findByOwner(owner);
+        return tagRepository.findByOwnerOrSystemTags(owner);
     }
 }

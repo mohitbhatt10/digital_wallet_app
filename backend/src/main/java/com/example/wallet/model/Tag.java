@@ -15,6 +15,9 @@ public class Tag {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean isSystem = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     private User owner;
@@ -24,6 +27,9 @@ public class Tag {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public Boolean getIsSystem() { return isSystem; }
+    public void setIsSystem(Boolean isSystem) { this.isSystem = isSystem; }
 
     public User getOwner() { return owner; }
     public void setOwner(User owner) { this.owner = owner; }

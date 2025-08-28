@@ -1,6 +1,10 @@
 import { http } from './http'
 
-export interface Tag { id: number; name: string }
+export interface Tag { 
+  id: number; 
+  name: string; 
+  isSystem?: boolean; 
+}
 
 export async function listTags(): Promise<Tag[]> {
   const { data } = await http.get<Tag[]>('/tags')

@@ -495,29 +495,73 @@ export default function Dashboard() {
                       </svg>
                       Tags
                     </label>
-                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50/80 backdrop-blur-sm rounded-xl border border-gray-200/50 min-h-[3rem]">
-                      {tags.map(t => {
-                        const active = expenseForm.tagIds.includes(t.id)
-                        return (
-                          <button 
-                            type="button" 
-                            key={t.id} 
-                            onClick={() => toggleTag(t.id)} 
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 ${active 
-                              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25' 
-                              : 'bg-white/80 border border-gray-200 text-gray-600 hover:bg-white hover:shadow-md'
-                            }`}
-                          >
-                            {t.name}
-                          </button>
-                        )
-                      })}
+                    <div className="p-3 bg-gray-50/80 backdrop-blur-sm rounded-xl border border-gray-200/50 min-h-[3rem] space-y-3">
+                      {/* System Tags */}
+                      {tags.filter(t => t.isSystem).length > 0 && (
+                        <div>
+                          <div className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                            </svg>
+                            Predefined Tags
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {tags.filter(t => t.isSystem).map(t => {
+                              const active = expenseForm.tagIds.includes(t.id)
+                              return (
+                                <button 
+                                  type="button" 
+                                  key={t.id} 
+                                  onClick={() => toggleTag(t.id)} 
+                                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 ${active 
+                                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25' 
+                                    : 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:shadow-md'
+                                  }`}
+                                >
+                                  {t.name}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* User Tags */}
+                      {tags.filter(t => !t.isSystem).length > 0 && (
+                        <div>
+                          <div className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Your Tags
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {tags.filter(t => !t.isSystem).map(t => {
+                              const active = expenseForm.tagIds.includes(t.id)
+                              return (
+                                <button 
+                                  type="button" 
+                                  key={t.id} 
+                                  onClick={() => toggleTag(t.id)} 
+                                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 ${active 
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25' 
+                                    : 'bg-white/80 border border-gray-200 text-gray-600 hover:bg-white hover:shadow-md'
+                                  }`}
+                                >
+                                  {t.name}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {tags.length === 0 && (
                         <div className="flex items-center gap-2 text-gray-400 text-sm">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                           </svg>
-                          No tags created yet
+                          No tags available yet
                         </div>
                       )}
                     </div>
