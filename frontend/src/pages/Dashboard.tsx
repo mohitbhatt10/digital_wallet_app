@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { listCategories, createCategory, Category } from '../api/categories'
 import { listTags, createTag, Tag } from '../api/tags'
-import { listRecentExpenses, createExpense, Expense } from '../api/expenses'
+import { listRecentExpenses, createExpense, updateExpense, deleteExpense, Expense } from '../api/expenses'
 import { getCurrentBudget, upsertBudget, getBudgetByMonthYear, Budget } from '../api/budgets'
 
 export default function Dashboard() {
@@ -37,6 +37,7 @@ export default function Dashboard() {
   })
   const [showAllSystemTags, setShowAllSystemTags] = useState(false)
   const [showAllExpenseSystemTags, setShowAllExpenseSystemTags] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [error, setError] = useState<string|undefined>()
 
   // Calculate current month's spending
@@ -57,6 +58,24 @@ export default function Dashboard() {
   const spendingPercentage = currentBudget?.amount 
     ? (currentMonthSpending / currentBudget.amount) * 100 
     : 0
+
+  // Get the last 5 expenses sorted by transaction date (desc) then by amount (desc)
+  const getRecentExpenses = () => {
+    return expenses
+      .sort((a, b) => {
+        // First sort by transaction date (most recent first)
+        const dateA = new Date(a.transactionDate).getTime()
+        const dateB = new Date(b.transactionDate).getTime()
+        if (dateB !== dateA) {
+          return dateB - dateA
+        }
+        // If dates are the same, sort by amount (highest first)
+        return b.amount - a.amount
+      })
+      .slice(0, 5)
+  }
+
+  const recentExpenses = getRecentExpenses()
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -105,8 +124,18 @@ export default function Dashboard() {
         paymentType: expenseForm.paymentType || undefined,
         transactionDate: expenseForm.transactionDate ? new Date(expenseForm.transactionDate).toISOString() : undefined
       }
-      const created = await createExpense(payload)
-      setExpenses(prev => [created, ...prev])
+      
+      if (editingExpense) {
+        // Update existing expense
+        const updated = await updateExpense(editingExpense.id, payload)
+        setExpenses(prev => prev.map(exp => exp.id === updated.id ? updated : exp))
+        setEditingExpense(null)
+      } else {
+        // Create new expense
+        const created = await createExpense(payload)
+        setExpenses(prev => [created, ...prev])
+      }
+      
       setShowExpense(false)
       setShowAllExpenseSystemTags(false)
       setExpenseForm({ 
@@ -119,7 +148,51 @@ export default function Dashboard() {
         transactionDate: new Date().toISOString().slice(0, 16)
       })
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to create expense')
+      setError(err?.response?.data?.message || `Failed to ${editingExpense ? 'update' : 'create'} expense`)
+    } finally { setLoading(false) }
+  }
+
+  async function handleEditExpense(expense: Expense) {
+    setEditingExpense(expense)
+    
+    // Determine if the category is a main category or subcategory using parent information
+    let categoryId = ''
+    let subCategoryId = ''
+    
+    if (expense.category) {
+      if (expense.category.parentId) {
+        // It's a subcategory - set parent as main category and this as subcategory
+        categoryId = expense.category.parentId.toString()
+        subCategoryId = expense.category.id.toString()
+      } else {
+        // It's a main category
+        categoryId = expense.category.id.toString()
+        subCategoryId = ''
+      }
+    }
+    
+    setExpenseForm({
+      amount: expense.amount.toString(),
+      description: expense.description || '',
+      categoryId: categoryId,
+      subCategoryId: subCategoryId,
+      tagIds: expense.tags?.map(tag => tag.id) || [],
+      paymentType: expense.paymentType || '',
+      transactionDate: expense.transactionDate ? new Date(expense.transactionDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)
+    })
+    setShowExpense(true)
+    setShowAllExpenseSystemTags(false)
+  }
+
+  async function handleDeleteExpense(expenseId: number) {
+    if (!confirm('Are you sure you want to delete this expense?')) return
+    
+    setLoading(true); setError(undefined)
+    try {
+      await deleteExpense(expenseId)
+      setExpenses(prev => prev.filter(exp => exp.id !== expenseId))
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to delete expense')
     } finally { setLoading(false) }
   }
 
@@ -351,21 +424,56 @@ export default function Dashboard() {
           <div className="lg:col-span-2 card p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Recent Expenses</h2>
-              <button className="btn-outline text-xs" onClick={() => { setShowExpense(true); setShowAllExpenseSystemTags(false); }}>Add</button>
+              <button className="btn-outline text-xs" onClick={() => { 
+                setEditingExpense(null); 
+                setExpenseForm({ 
+                  amount: '', 
+                  description: '', 
+                  categoryId: '', 
+                  subCategoryId: '',
+                  tagIds: [], 
+                  paymentType: '',
+                  transactionDate: new Date().toISOString().slice(0, 16)
+                });
+                setShowExpense(true); 
+                setShowAllExpenseSystemTags(false); 
+              }}>Add</button>
             </div>
-            {expenses.length === 0 && <div className="text-sm text-zinc-500">No expenses yet.</div>}
+            {recentExpenses.length === 0 && <div className="text-sm text-zinc-500">No expenses yet.</div>}
             <ul className="space-y-3">
-              {expenses.map(e => (
-                <li key={e.id} className="flex items-center justify-between text-sm">
+              {recentExpenses.map(e => (
+                <li key={e.id} className="flex items-center justify-between text-sm group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors duration-200">
                   <div className="flex flex-col">
                     <span className="font-medium text-zinc-800">${e.amount.toFixed(2)}</span>
                     <span className="text-zinc-500">{e.category?.name || '—'} {e.tags && e.tags.length > 0 && <span className="text-xs">[{e.tags.map(t => t.name).join(', ')}]</span>}</span>
                     {e.paymentType && <span className="text-xs text-zinc-400">via {e.paymentType.replace('-', ' ')}</span>}
                   </div>
-                  <div className="text-right">
-                    <span className="text-xs text-zinc-400">{new Date(e.transactionDate).toLocaleDateString()}</span>
-                    <br />
-                    <span className="text-xs text-zinc-300">{new Date(e.transactionDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <span className="text-xs text-zinc-400">{new Date(e.transactionDate).toLocaleDateString()}</span>
+                      <br />
+                      <span className="text-xs text-zinc-300">{new Date(e.transactionDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        onClick={() => handleEditExpense(e)}
+                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors duration-200"
+                        title="Edit expense"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteExpense(e.id)}
+                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200"
+                        title="Delete expense"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -419,7 +527,7 @@ export default function Dashboard() {
                       </svg>
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-800">Add New Expense</h2>
+                      <h2 className="text-xl font-semibold text-gray-800">{editingExpense ? 'Edit Expense' : 'Add New Expense'}</h2>
                       <p className="text-sm text-gray-500">Track your spending and categorize it</p>
                     </div>
                   </div>
@@ -685,7 +793,20 @@ export default function Dashboard() {
                     <button 
                       type="button" 
                       className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium" 
-                      onClick={() => { setShowExpense(false); setShowAllExpenseSystemTags(false); }}
+                      onClick={() => { 
+                        setShowExpense(false); 
+                        setShowAllExpenseSystemTags(false); 
+                        setEditingExpense(null);
+                        setExpenseForm({ 
+                          amount: '', 
+                          description: '', 
+                          categoryId: '', 
+                          subCategoryId: '',
+                          tagIds: [], 
+                          paymentType: '',
+                          transactionDate: new Date().toISOString().slice(0, 16)
+                        });
+                      }}
                     >
                       Cancel
                     </button>
@@ -702,7 +823,7 @@ export default function Dashboard() {
                           </svg>
                           Saving...
                         </div>
-                      ) : 'Save Expense'}
+                      ) : (editingExpense ? 'Update Expense' : 'Save Expense')}
                     </button>
                   </div>
                   </div>

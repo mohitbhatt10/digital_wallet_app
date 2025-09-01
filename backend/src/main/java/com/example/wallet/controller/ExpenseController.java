@@ -21,7 +21,8 @@ public class ExpenseController {
     }
 
     @PostMapping
-    public ResponseEntity<ExpenseResponse> create(@AuthenticationPrincipal User user, @Valid @RequestBody ExpenseRequest req) {
+    public ResponseEntity<ExpenseResponse> create(@AuthenticationPrincipal User user,
+            @Valid @RequestBody ExpenseRequest req) {
         Expense created = expenseService.create(user, req);
         return ResponseEntity.ok(expenseService.toResponse(created));
     }
@@ -30,5 +31,18 @@ public class ExpenseController {
     public ResponseEntity<List<ExpenseResponse>> listRecent(@AuthenticationPrincipal User user) {
         List<ExpenseResponse> list = expenseService.listRecent(user).stream().map(expenseService::toResponse).toList();
         return ResponseEntity.ok(list);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ExpenseResponse> update(@AuthenticationPrincipal User user, @PathVariable Long id,
+            @Valid @RequestBody ExpenseRequest req) {
+        Expense updated = expenseService.update(user, id, req);
+        return ResponseEntity.ok(expenseService.toResponse(updated));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal User user, @PathVariable Long id) {
+        expenseService.delete(user, id);
+        return ResponseEntity.noContent().build();
     }
 }

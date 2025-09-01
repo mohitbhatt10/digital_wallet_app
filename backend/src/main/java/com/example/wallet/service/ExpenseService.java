@@ -15,7 +15,8 @@ public class ExpenseService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
 
-    public ExpenseService(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, TagRepository tagRepository) {
+    public ExpenseService(ExpenseRepository expenseRepository, CategoryRepository categoryRepository,
+            TagRepository tagRepository) {
         this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.tagRepository = tagRepository;
@@ -39,12 +40,62 @@ public class ExpenseService {
     }
 
     public List<Expense> listRecent(User user) {
-        // For now return last 20 by id desc (simple). Could be refined with date filter.
+        // For now return last 20 by id desc (simple). Could be refined with date
+        // filter.
         return expenseRepository.findAll().stream()
                 .filter(e -> e.getUser().getId().equals(user.getId()))
                 .sorted(Comparator.comparing(Expense::getId).reversed())
                 .limit(20)
                 .toList();
+    }
+
+    public Expense update(User user, Long id, ExpenseRequest req) {
+        Optional<Expense> expenseOpt = expenseRepository.findById(id);
+        if (expenseOpt.isEmpty()) {
+            throw new IllegalArgumentException("Expense not found");
+        }
+
+        Expense expense = expenseOpt.get();
+        if (!expense.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Not authorized to update this expense");
+        }
+
+        expense.setAmount(req.getAmount());
+        expense.setTransactionDate(
+                req.getTransactionDate() != null ? req.getTransactionDate() : expense.getTransactionDate());
+        expense.setDescription(req.getDescription());
+        expense.setPaymentType(req.getPaymentType());
+
+        if (req.getCategoryId() != null) {
+            categoryRepository.findById(req.getCategoryId()).ifPresent(expense::setCategory);
+        } else {
+            expense.setCategory(null);
+        }
+
+        if (req.getTagIds() != null) {
+            if (req.getTagIds().isEmpty()) {
+                expense.setTags(new HashSet<>());
+            } else {
+                Set<Tag> tags = new HashSet<>(tagRepository.findAllById(req.getTagIds()));
+                expense.setTags(tags);
+            }
+        }
+
+        return expenseRepository.save(expense);
+    }
+
+    public void delete(User user, Long id) {
+        Optional<Expense> expenseOpt = expenseRepository.findById(id);
+        if (expenseOpt.isEmpty()) {
+            throw new IllegalArgumentException("Expense not found");
+        }
+
+        Expense expense = expenseOpt.get();
+        if (!expense.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Not authorized to delete this expense");
+        }
+
+        expenseRepository.delete(expense);
     }
 
     public ExpenseResponse toResponse(Expense e) {
@@ -55,7 +106,13 @@ public class ExpenseService {
         r.setDescription(e.getDescription());
         r.setPaymentType(e.getPaymentType());
         if (e.getCategory() != null) {
-            r.setCategory(new ExpenseResponse.CategoryRef(e.getCategory().getId(), e.getCategory().getName()));
+            Long parentId = e.getCategory().getParent() != null ? e.getCategory().getParent().getId() : null;
+            String parentName = e.getCategory().getParent() != null ? e.getCategory().getParent().getName() : null;
+            r.setCategory(new ExpenseResponse.CategoryRef(
+                    e.getCategory().getId(),
+                    e.getCategory().getName(),
+                    parentId,
+                    parentName));
         }
         if (e.getTags() != null && !e.getTags().isEmpty()) {
             r.setTags(e.getTags().stream().map(t -> new ExpenseResponse.TagRef(t.getId(), t.getName())).toList());
