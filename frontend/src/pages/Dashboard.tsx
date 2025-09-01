@@ -77,6 +77,49 @@ export default function Dashboard() {
 
   const recentExpenses = getRecentExpenses()
 
+  // Compute spending distribution per parent category for the current month
+  const getCategoryDistribution = () => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth()
+
+    const monthly = expenses.filter(expense => {
+      const expenseDate = new Date(expense.transactionDate)
+      return expenseDate.getFullYear() === currentYear && expenseDate.getMonth() === currentMonth
+    })
+
+    const totals = new Map<number, { name: string; total: number }>()
+    for (const e of monthly) {
+      let parentId = e.category?.parentId ?? e.category?.id
+      let parentName = e.category?.parentName ?? e.category?.name ?? 'Uncategorized'
+      if (parentId == null) {
+        parentId = -1
+        parentName = 'Uncategorized'
+      }
+      const existing = totals.get(parentId) ?? { name: parentName, total: 0 }
+      existing.total += e.amount
+      totals.set(parentId, existing)
+    }
+
+    const list = Array.from(totals.entries()).map(([id, v]) => ({ id, name: v.name, total: v.total }))
+    list.sort((a, b) => b.total - a.total)
+    const totalSum = list.reduce((s, it) => s + it.total, 0)
+    return { list, totalSum }
+  }
+
+  // SVG helpers for drawing pie arcs
+  const polarToCartesian = (cx: number, cy: number, r: number, angle: number) => {
+    const rad = (angle - 90) * (Math.PI / 180)
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+  }
+
+  const describeArc = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
+    const start = polarToCartesian(cx, cy, r, endAngle)
+    const end = polarToCartesian(cx, cy, r, startAngle)
+    const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1'
+    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y} L ${cx} ${cy} Z`
+  }
+
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const token = params.get('token')
@@ -415,10 +458,71 @@ export default function Dashboard() {
             )}
           </div>
             <div className="card p-5">
-            <h3 className="text-sm font-medium text-zinc-600">Categories</h3>
-            <p className="mt-2 text-2xl font-semibold tracking-tight">0</p>
-            <p className="mt-1 text-xs text-zinc-500">Organize your spending</p>
-          </div>
+              <h3 className="text-sm font-medium text-zinc-600">Categories</h3>
+              <div className="mt-4">
+                <div className="flex items-start gap-6">
+                  <div className="flex-shrink-0">
+                    {(() => {
+                      const { list, totalSum } = getCategoryDistribution()
+                      const size = 120
+                      const cx = size / 2
+                      const cy = size / 2
+                      const r = size / 2
+                      let angleStart = 0
+                      const colors = ['#6366F1', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#3B82F6']
+
+                      if (list.length === 0 || totalSum === 0) {
+                        return (
+                          <div className="w-28 h-28 bg-gray-50 rounded-full flex items-center justify-center">
+                            <span className="text-xs text-gray-400">No data</span>
+                          </div>
+                        )
+                      }
+
+                      return (
+                        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                          {list.map((item, idx) => {
+                            const value = item.total
+                            const angle = (value / totalSum) * 360
+                            const path = describeArc(cx, cy, r, angleStart, angleStart + angle)
+                            const color = colors[idx % colors.length]
+                            angleStart += angle
+                            return <path key={item.id} d={path} fill={color} stroke="#fff" strokeWidth={0.5} />
+                          })}
+                          <circle cx={cx} cy={cy} r={r * 0.45} fill="#fff" />
+                          <text x={cx} y={cy - 4} textAnchor="middle" style={{ fontSize: 12, fill: '#374151' }}>{totalSum.toFixed(2)}</text>
+                          <text x={cx} y={cy + 12} textAnchor="middle" style={{ fontSize: 10, fill: '#6B7280' }}>This month</text>
+                        </svg>
+                      )
+                    })()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="grid grid-cols-1 gap-2">
+                      {(() => {
+                        const { list, totalSum } = getCategoryDistribution()
+                        const colors = ['#6366F1', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#3B82F6']
+                        if (list.length === 0) return <div className="text-sm text-gray-500">No spending in this month</div>
+                        return list.map((it, idx) => {
+                          const pct = totalSum > 0 ? (it.total / totalSum) * 100 : 0
+                          return (
+                            <div key={it.id} className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span style={{ backgroundColor: colors[idx % colors.length] }} className="w-3 h-3 inline-block rounded-sm" />
+                                <span className="text-sm text-gray-700">{it.name}</span>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-medium text-gray-900">{it.total.toFixed(2)}</div>
+                                <div className="text-xs text-gray-500">{pct.toFixed(1)}%</div>
+                              </div>
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
         </div>
         <div className="mt-10 grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 card p-6">
