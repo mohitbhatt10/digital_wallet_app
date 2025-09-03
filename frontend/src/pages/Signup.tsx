@@ -3,7 +3,7 @@ import { signup } from '../api/auth'
 import { useNavigate, Link } from 'react-router-dom'
 
 export default function Signup() {
-  const [form, setForm] = useState({ email: '', username: '', password: '', firstName: '', lastName: '', phoneNumber: '' })
+  const [form, setForm] = useState({ email: '', username: '', password: '', firstName: '', lastName: '', phoneNumber: '', country: '', currency: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
@@ -62,6 +62,62 @@ export default function Signup() {
               <div className="grid gap-1">
                 <label className="text-xs font-medium text-zinc-600">Last name</label>
                 <input className="input" placeholder="Doe" value={form.lastName} onChange={e => update('lastName', e.target.value)} />
+              </div>
+              <div className="grid gap-1">
+                <label className="text-xs font-medium text-zinc-600">Country</label>
+                <select
+                  className="input"
+                  value={form.country}
+                  onChange={e => {
+                    const country = e.target.value
+                    const map: Record<string, string> = {
+                      'United States': 'USD',
+                      'United Kingdom': 'GBP',
+                      'India': 'INR',
+                      'Canada': 'CAD',
+                      'Australia': 'AUD',
+                      'Germany': 'EUR',
+                      'France': 'EUR',
+                      'Japan': 'JPY',
+                      'Singapore': 'SGD',
+                      'Switzerland': 'CHF',
+                      'Brazil': 'BRL',
+                      'Mexico': 'MXN'
+                    }
+                    setForm(prev => ({ ...prev, country, currency: map[country] ?? prev.currency }))
+                  }}
+                >
+                  <option value="">Select country</option>
+                  <option>United States</option>
+                  <option>United Kingdom</option>
+                  <option>India</option>
+                  <option>Canada</option>
+                  <option>Australia</option>
+                  <option>Germany</option>
+                  <option>France</option>
+                  <option>Japan</option>
+                  <option>Singapore</option>
+                  <option>Switzerland</option>
+                  <option>Brazil</option>
+                  <option>Mexico</option>
+                </select>
+              </div>
+              <div className="grid gap-1">
+                <label className="text-xs font-medium text-zinc-600">Currency</label>
+                <select className="input" value={form.currency} onChange={e => update('currency', e.target.value)}>
+                  <option value="">Select currency</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                  <option value="EUR">EUR</option>
+                  <option value="INR">INR</option>
+                  <option value="CAD">CAD</option>
+                  <option value="AUD">AUD</option>
+                  <option value="JPY">JPY</option>
+                  <option value="SGD">SGD</option>
+                  <option value="CHF">CHF</option>
+                  <option value="BRL">BRL</option>
+                  <option value="MXN">MXN</option>
+                </select>
               </div>
               <div className="sm:col-span-2 grid gap-1">
                 <label className="text-xs font-medium text-zinc-600">Phone number</label>

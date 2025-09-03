@@ -7,6 +7,8 @@ export interface SignupForm {
   firstName?: string
   lastName?: string
   phoneNumber?: string
+  country?: string
+  currency?: string
 }
 
 export async function signup(data: SignupForm): Promise<string> {

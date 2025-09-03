@@ -40,6 +40,28 @@ export default function Dashboard() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [error, setError] = useState<string|undefined>()
 
+  // Currency formatting helpers (use user's currency if available)
+  const formatCurrency = (amount: number) => {
+    if (amount == null) return ''
+    try {
+      if (user?.currency) {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: user.currency }).format(amount)
+      }
+    } catch {}
+    return `$${amount.toFixed(2)}`
+  }
+
+  const getCurrencySymbol = () => {
+    try {
+      if (user?.currency) {
+        const parts = new Intl.NumberFormat(undefined, { style: 'currency', currency: user.currency, minimumFractionDigits: 0 }).formatToParts(0)
+        const cur = parts.find(p => p.type === 'currency')
+        return cur?.value ?? user.currency
+      }
+    } catch {}
+    return '$'
+  }
+
   // Calculate current month's spending
   const getCurrentMonthSpending = () => {
     const now = new Date()
@@ -388,7 +410,7 @@ export default function Dashboard() {
                 </button>
               </div>
               <p className="mt-2 text-2xl font-semibold tracking-tight">
-                ${currentBudget ? currentBudget.amount.toFixed(2) : '0.00'}
+                {currentBudget ? formatCurrency(currentBudget.amount) : formatCurrency(0)}
               </p>
               <p className="mt-1 text-xs text-zinc-500">
                 {currentBudget ? 'Click Edit to modify' : 'Set your monthly budget to track spending'}
@@ -418,12 +440,12 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="mt-2 text-2xl font-semibold tracking-tight">
-              ${currentMonthSpending.toFixed(2)}
+              {formatCurrency(currentMonthSpending)}
             </p>
             {currentBudget ? (
               <div className="mt-3 space-y-2">
                 <div className="flex justify-between text-xs text-zinc-500">
-                  <span>Budget: ${currentBudget.amount.toFixed(2)}</span>
+                  <span>Budget: {formatCurrency(currentBudget.amount)}</span>
                   <span className={spendingPercentage > 100 ? 'text-red-600 font-medium' : ''}>
                     {spendingPercentage.toFixed(1)}%
                   </span>
@@ -448,8 +470,8 @@ export default function Dashboard() {
                     : 'text-zinc-500'
                 }`}>
                   {currentMonthSpending <= currentBudget.amount 
-                    ? `$${(currentBudget.amount - currentMonthSpending).toFixed(2)} remaining`
-                    : `$${(currentMonthSpending - currentBudget.amount).toFixed(2)} over budget`
+                    ? `${formatCurrency(currentBudget.amount - currentMonthSpending)} remaining`
+                    : `${formatCurrency(currentMonthSpending - currentBudget.amount)} over budget`
                   }
                 </p>
               </div>
@@ -490,7 +512,7 @@ export default function Dashboard() {
                             return <path key={item.id} d={path} fill={color} stroke="#fff" strokeWidth={0.5} />
                           })}
                           <circle cx={cx} cy={cy} r={r * 0.45} fill="#fff" />
-                          <text x={cx} y={cy - 4} textAnchor="middle" style={{ fontSize: 12, fill: '#374151' }}>{totalSum.toFixed(2)}</text>
+                          <text x={cx} y={cy - 4} textAnchor="middle" style={{ fontSize: 12, fill: '#374151' }}>{formatCurrency(totalSum)}</text>
                           <text x={cx} y={cy + 12} textAnchor="middle" style={{ fontSize: 10, fill: '#6B7280' }}>This month</text>
                         </svg>
                       )
@@ -511,7 +533,7 @@ export default function Dashboard() {
                                 <span className="text-sm text-gray-700">{it.name}</span>
                               </div>
                               <div className="text-right">
-                                <div className="text-sm font-medium text-gray-900">{it.total.toFixed(2)}</div>
+                                <div className="text-sm font-medium text-gray-900">{formatCurrency(it.total)}</div>
                                 <div className="text-xs text-gray-500">{pct.toFixed(1)}%</div>
                               </div>
                             </div>
@@ -547,8 +569,8 @@ export default function Dashboard() {
             <ul className="space-y-3">
               {recentExpenses.map(e => (
                 <li key={e.id} className="flex items-center justify-between text-sm group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors duration-200">
-                  <div className="flex flex-col">
-                    <span className="font-medium text-zinc-800">${e.amount.toFixed(2)}</span>
+                    <div className="flex flex-col">
+                    <span className="font-medium text-zinc-800">{formatCurrency(e.amount)}</span>
                     <span className="text-zinc-500">{e.category?.name || '—'} {e.tags && e.tags.length > 0 && <span className="text-xs">[{e.tags.map(t => t.name).join(', ')}]</span>}</span>
                     {e.paymentType && <span className="text-xs text-zinc-400">via {e.paymentType.replace('-', ' ')}</span>}
                   </div>
@@ -655,9 +677,9 @@ export default function Dashboard() {
                           className="w-full px-4 py-3 pl-8 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 hover:bg-white/80" 
                           value={expenseForm.amount} 
                           onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} 
-                          placeholder="0.00"
+                          placeholder={formatCurrency(0)}
                         />
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{getCurrencySymbol()}</span>
                       </div>
                     </div>
 
@@ -1398,7 +1420,7 @@ export default function Dashboard() {
                         Budget Amount *
                       </label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">$</span>
+                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">{getCurrencySymbol()}</span>
                         <input
                           required
                           type="number"

@@ -25,8 +25,10 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest req) {
-        if (userService.emailExists(req.getEmail())) return ResponseEntity.badRequest().body(Map.of("error", "Email already in use"));
-        if (userService.usernameExists(req.getUsername())) return ResponseEntity.badRequest().body(Map.of("error", "Username already in use"));
+        if (userService.emailExists(req.getEmail()))
+            return ResponseEntity.badRequest().body(Map.of("error", "Email already in use"));
+        if (userService.usernameExists(req.getUsername()))
+            return ResponseEntity.badRequest().body(Map.of("error", "Username already in use"));
         User u = new User();
         u.setEmail(req.getEmail());
         u.setUsername(req.getUsername());
@@ -34,6 +36,8 @@ public class AuthController {
         u.setFirstName(req.getFirstName());
         u.setLastName(req.getLastName());
         u.setPhoneNumber(req.getPhoneNumber());
+        u.setCountry(req.getCountry());
+        u.setCurrency(req.getCurrency());
         u.getRoles().add(Role.USER);
         u = userService.registerLocal(u);
         String token = jwtService.generate(u.getUsername(), Map.of("uid", u.getId()));

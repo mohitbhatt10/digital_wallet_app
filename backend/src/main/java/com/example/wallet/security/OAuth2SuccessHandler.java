@@ -38,6 +38,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String name = (String) principal.getAttributes().getOrDefault("name", "");
         String givenName = (String) principal.getAttributes().getOrDefault("given_name", "");
         String familyName = (String) principal.getAttributes().getOrDefault("family_name", "");
+        String locale = (String) principal.getAttributes().getOrDefault("locale", "IN");
+        String country = locale != null ? locale : "India";
+        String currency = getCurrencyForCountry(locale);
+
 
         User user = userRepository.findByEmail(email).orElseGet(() -> {
             User u = new User();
@@ -58,11 +62,31 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             u.setLastName(familyName);
             u.setProvider(AuthProvider.GOOGLE);
             u.setRoles(Set.of(Role.USER));
+            u.setCountry(country);
+            u.setCurrency(currency);
             return userRepository.save(u);
         });
 
         String token = jwtService.generate(user.getUsername(), java.util.Map.of("uid", user.getId()));
-    String redirect = frontendCallback + (frontendCallback.contains("?") ? "&" : "?") + "token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
+        String redirect = frontendCallback + (frontendCallback.contains("?") ? "&" : "?") + "token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
         response.sendRedirect(redirect);
+    }
+
+    private String getCurrencyForCountry(String countryCode) {
+        if (countryCode == null) return "INR";
+        return switch (countryCode.toUpperCase()) {
+            case "US", "USA" -> "USD";
+            case "GB", "UK" -> "GBP";
+            case "EU", "EUR" -> "EUR";
+            case "JP", "JPN" -> "JPY";
+            case "IN", "IND" -> "INR";
+            case "CA", "CAN" -> "CAD";
+            case "AU", "AUS" -> "AUD";
+            case "SG", "SGP" -> "SGD";
+            case "CH", "CHE" -> "CHF";
+            case "CN", "CHN" -> "CNY";
+            case "NZ", "NZL" -> "NZD";
+            default -> "INR"; // Default to INR if unknown
+        };
     }
 }
