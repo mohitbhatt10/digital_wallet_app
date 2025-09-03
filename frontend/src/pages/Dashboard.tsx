@@ -48,7 +48,8 @@ export default function Dashboard() {
         return new Intl.NumberFormat(undefined, { style: 'currency', currency: user.currency }).format(amount)
       }
     } catch {}
-    return `$${amount.toFixed(2)}`
+  // Fallback: show number without forcing a dollar sign so we don't incorrectly display '$' for non-USD users
+  return amount.toFixed(2)
   }
 
   const getCurrencySymbol = () => {
@@ -56,10 +57,28 @@ export default function Dashboard() {
       if (user?.currency) {
         const parts = new Intl.NumberFormat(undefined, { style: 'currency', currency: user.currency, minimumFractionDigits: 0 }).formatToParts(0)
         const cur = parts.find(p => p.type === 'currency')
-        return cur?.value ?? user.currency
+    return cur?.value ?? user.currency
       }
     } catch {}
-    return '$'
+  // If no symbol could be determined, prefer returning the currency code (if user has one) or empty string
+  return user?.currency ?? ''
+  }
+
+  // Tag color palette (used for non-clickable tag pills)
+  const tagColorClasses = [
+    'bg-blue-50 text-blue-800 border border-blue-100',
+    'bg-green-50 text-green-800 border border-green-100',
+    'bg-purple-50 text-purple-800 border border-purple-100',
+    'bg-amber-50 text-amber-800 border border-amber-100',
+    'bg-red-50 text-red-800 border border-red-100',
+    'bg-teal-50 text-teal-800 border border-teal-100',
+    'bg-indigo-50 text-indigo-800 border border-indigo-100',
+    'bg-pink-50 text-pink-800 border border-pink-100'
+  ]
+
+  const getTagClass = (tag: { id?: number; name?: string }) => {
+    const idx = typeof tag.id === 'number' ? tag.id : (tag.name?.length ?? 0)
+    return tagColorClasses[idx % tagColorClasses.length]
   }
 
   // Calculate current month's spending
@@ -567,12 +586,27 @@ export default function Dashboard() {
             </div>
             {recentExpenses.length === 0 && <div className="text-sm text-zinc-500">No expenses yet.</div>}
             <ul className="space-y-3">
-              {recentExpenses.map(e => (
-                <li key={e.id} className="flex items-center justify-between text-sm group hover:bg-gray-50/50 rounded-lg p-2 -mx-2 transition-colors duration-200">
-                    <div className="flex flex-col">
+              {recentExpenses.map((e, idx) => (
+                <li
+                  key={e.id}
+                  className={`flex items-center justify-between text-sm group rounded-lg p-2 -mx-2 transition-colors duration-200 ${idx % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'}`}
+                >
+                  <div className="flex flex-col">
                     <span className="font-medium text-zinc-800">{formatCurrency(e.amount)}</span>
-                    <span className="text-zinc-500">{e.category?.name || '—'} {e.tags && e.tags.length > 0 && <span className="text-xs">[{e.tags.map(t => t.name).join(', ')}]</span>}</span>
-                    {e.paymentType && <span className="text-xs text-zinc-400">via {e.paymentType.replace('-', ' ')}</span>}
+                    <span className="text-zinc-500">{e.category?.name || '—'}</span>
+
+                    {/* Tag pills on next line */}
+                    {e.tags && e.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {e.tags.map(t => (
+                          <span key={t.id ?? t.name} className={`text-xs font-medium px-2 py-0.5 rounded-full ${getTagClass(t)}`}>
+                            {t.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {e.paymentType && <span className="text-xs text-zinc-400 mt-1">via {e.paymentType.replace('-', ' ')}</span>}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
@@ -722,7 +756,7 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                         <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2M7 7h10" />
                         </svg>
                         Main Category *
                       </label>
@@ -962,7 +996,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3 sticky top-0 bg-white/95 backdrop-blur-sm py-4 px-6 border-b border-gray-100/50 z-10">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2M7 7h10" />
                       </svg>
                     </div>
                     <div>
@@ -994,7 +1028,7 @@ export default function Dashboard() {
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center peer-checked:bg-purple-500 peer-checked:text-white">
                               <svg className="w-4 h-4 text-purple-600 peer-checked:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2M7 7h10" />
                               </svg>
                             </div>
                             <div>
@@ -1156,7 +1190,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
                           Creating...
                         </div>

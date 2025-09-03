@@ -1,6 +1,19 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
 
 export default function App() {
+  const { user } = useAuth()
+
+  const formatCurrency = (amount: number) => {
+    if (amount == null) return ''
+    try {
+      if (user?.currency) {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: user.currency }).format(amount)
+      }
+    } catch {}
+    return amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="flex items-center justify-between px-6 py-4 backdrop-blur surface border-b border-zinc-200/60">
@@ -44,7 +57,7 @@ export default function App() {
                 <div className="col-span-2 card p-4 flex flex-col justify-between">
                   <div>
                     <div className="text-xs font-medium text-zinc-500">Spending - This Month</div>
-                    <div className="mt-3 text-3xl font-semibold">$1,240</div>
+                    <div className="mt-3 text-3xl font-semibold">{formatCurrency(1240)}</div>
                   </div>
                   <div className="mt-4 h-2 rounded-full bg-zinc-200 overflow-hidden">
                     <div className="h-full w-2/3 bg-gradient-to-r from-blue-600 to-indigo-600" />
@@ -52,7 +65,7 @@ export default function App() {
                 </div>
                 <div className="card p-4 flex flex-col justify-between">
                   <div className="text-xs font-medium text-zinc-500">Budget</div>
-                  <div className="text-2xl font-semibold">$2k</div>
+                  <div className="text-2xl font-semibold">{formatCurrency(2000)}</div>
                 </div>
                 <div className="card p-4 col-span-3">
                   <div className="text-xs font-medium text-zinc-500 mb-2">Recent Categories</div>
