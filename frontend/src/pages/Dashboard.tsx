@@ -37,7 +37,7 @@ export default function Dashboard() {
     subCategoryId: "",
     tagIds: [] as number[],
     paymentType: "",
-    transactionDate: new Date().toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:MM
+  transactionDate: formatDateForInput(), // Format: YYYY-MM-DDTHH:MM in local timezone
   });
   const [categoryForm, setCategoryForm] = useState({
     name: "",
@@ -291,7 +291,7 @@ export default function Dashboard() {
         subCategoryId: "",
         tagIds: [],
         paymentType: "",
-        transactionDate: new Date().toISOString().slice(0, 16),
+  transactionDate: formatDateForInput(),
       });
     } catch (err: any) {
       setError(
@@ -330,8 +330,8 @@ export default function Dashboard() {
       tagIds: expense.tags?.map((tag) => tag.id) || [],
       paymentType: expense.paymentType || "",
       transactionDate: expense.transactionDate
-        ? new Date(expense.transactionDate).toISOString().slice(0, 16)
-        : new Date().toISOString().slice(0, 16),
+        ? formatDateForInput(expense.transactionDate)
+        : formatDateForInput(),
     });
     setShowExpense(true);
     setShowAllExpenseSystemTags(false);
@@ -473,6 +473,15 @@ export default function Dashboard() {
       console.warn("Failed to fetch budget for selected month/year:", err);
       setBudgetForm((prev) => ({ ...prev, amount: "0" }));
     }
+  }
+
+  // Helper: format a Date or ISO string into 'YYYY-MM-DDTHH:MM' in user's local timezone
+  function formatDateForInput(input?: string | Date) {
+    const d = input ? new Date(input) : new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+      d.getHours()
+    )}:${pad(d.getMinutes())}`;
   }
 
   if (!user) return null;
@@ -814,7 +823,7 @@ export default function Dashboard() {
                     subCategoryId: "",
                     tagIds: [],
                     paymentType: "",
-                    transactionDate: new Date().toISOString().slice(0, 16),
+                    transactionDate: formatDateForInput(),
                   });
                   setShowExpense(true);
                   setShowAllExpenseSystemTags(false);
@@ -1337,10 +1346,10 @@ export default function Dashboard() {
                                   strokeLinejoin="round"
                                   strokeWidth={2}
                                   d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-                                />
-                              </svg>
-                              Predefined Tags
-                            </div>
+                              />
+                            </svg>
+                            Predefined Tags
+                          </div>
                             <div className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
                               {(showAllExpenseSystemTags
                                 ? tags.filter((t) => t.isSystem)
@@ -1897,7 +1906,7 @@ export default function Dashboard() {
                             <path
                               className="opacity-75"
                               fill="currentColor"
-                              d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                             ></path>
                           </svg>
                           Creating...
@@ -2449,7 +2458,7 @@ export default function Dashboard() {
                             <path
                               className="opacity-75"
                               fill="currentColor"
-                              d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                             ></path>
                           </svg>
                           Saving...
