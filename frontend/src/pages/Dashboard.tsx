@@ -1468,66 +1468,65 @@ export default function Dashboard() {
                         )}
                       </div>
                     </div>
-
-                    {/* Action buttons */}
-                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-100/50 sticky bottom-0 bg-white/95 backdrop-blur-sm px-6 pb-2 z-10 mt-6">
-                      <button
-                        type="button"
-                        className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium"
-                        onClick={() => {
-                          setShowExpense(false);
-                          setShowAllExpenseSystemTags(false);
-                          setEditingExpense(null);
-                          setExpenseForm({
-                            amount: "",
-                            description: "",
-                            categoryId: "",
-                            subCategoryId: "",
-                            tagIds: [],
-                            paymentType: "",
-                            transactionDate: new Date()
-                              .toISOString()
-                              .slice(0, 16),
-                          });
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        disabled={loading}
-                        className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none"
-                        type="submit"
-                      >
-                        {loading ? (
-                          <div className="flex items-center gap-2">
-                            <svg
-                              className="animate-spin w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            Saving...
-                          </div>
-                        ) : editingExpense ? (
-                          "Update Expense"
-                        ) : (
-                          "Save Expense"
-                        )}
-                      </button>
-                    </div>
+                  </div>
+                  {/* Action buttons */}
+                  <div className="flex justify-end gap-3 pt-6 border-t border-gray-100/50 sticky bottom-0 bg-white/95 backdrop-blur-sm px-6 pb-2 z-10 mt-6">
+                    <button
+                      type="button"
+                      className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium"
+                      onClick={() => {
+                        setShowExpense(false);
+                        setShowAllExpenseSystemTags(false);
+                        setEditingExpense(null);
+                        setExpenseForm({
+                          amount: "",
+                          description: "",
+                          categoryId: "",
+                          subCategoryId: "",
+                          tagIds: [],
+                          paymentType: "",
+                          transactionDate: new Date()
+                            .toISOString()
+                            .slice(0, 16),
+                        });
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={loading}
+                      className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none"
+                      type="submit"
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <svg
+                            className="animate-spin w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Saving...
+                        </div>
+                      ) : editingExpense ? (
+                        "Update Expense"
+                      ) : (
+                        "Save Expense"
+                      )}
+                    </button>
                   </div>
                 </form>
               )}
@@ -1852,61 +1851,61 @@ export default function Dashboard() {
                         </div>
                       </div>
                     )}
+                  </div>
 
-                    {/* Action buttons */}
-                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-100/50 sticky bottom-0 bg-white/95 backdrop-blur-sm px-6 pb-2 z-10 mt-6">
-                      <button
-                        type="button"
-                        className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium"
-                        onClick={() => {
-                          setShowCategory(false);
-                          setCategoryForm({
-                            name: "",
-                            parentId: "",
-                            categoryType: "",
-                            subCategories: [""],
-                          });
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        disabled={
-                          loading ||
-                          !categoryForm.categoryType ||
-                          !categoryForm.name
-                        }
-                        className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none"
-                        type="submit"
-                      >
-                        {loading ? (
-                          <div className="flex items-center gap-2">
-                            <svg
-                              className="animate-spin w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            Creating...
-                          </div>
-                        ) : (
-                          "Create Category"
-                        )}
-                      </button>
-                    </div>
+                  {/* Action buttons */}
+                  <div className="flex justify-end gap-3 pt-6 border-t border-gray-100/50 sticky bottom-0 bg-white/95 backdrop-blur-sm px-6 pb-2 z-10 mt-6">
+                    <button
+                      type="button"
+                      className="px-6 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/50 rounded-xl transition-all duration-200 font-medium"
+                      onClick={() => {
+                        setShowCategory(false);
+                        setCategoryForm({
+                          name: "",
+                          parentId: "",
+                          categoryType: "",
+                          subCategories: [""],
+                        });
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={
+                        loading ||
+                        !categoryForm.categoryType ||
+                        !categoryForm.name
+                      }
+                      className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none"
+                      type="submit"
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <svg
+                            className="animate-spin w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Creating...
+                        </div>
+                      ) : (
+                        "Create Category"
+                      )}
+                    </button>
                   </div>
                 </form>
               )}
