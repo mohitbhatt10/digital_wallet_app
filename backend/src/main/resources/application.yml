@@ -5,7 +5,7 @@ spring:
     url: jdbc:postgresql://127.0.0.1:5432/wallet
     driverClassName: org.postgresql.Driver
     username: appuser
-    password: StrongP@ssw0rd 
+    password: StrongP@ssw0rd
   jpa:
     hibernate:
       ddl-auto: update
@@ -48,3 +48,6 @@ jwt:
 app:
   cors:
     allowed-origins: http://localhost:5173
+wallet:
+  frontend:
+    dashboard: http://localhost:5173/dashboard

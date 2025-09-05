@@ -8,6 +8,7 @@ import com.example.wallet.service.JwtService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -24,11 +25,13 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtService jwtService;
 
     // Frontend dashboard route will parse token from query param
-    private final String frontendCallback = System.getProperty("wallet.frontend.dashboard", "http://localhost:5173/dashboard");
+    private final String frontendCallback;
 
-    public OAuth2SuccessHandler(UserRepository userRepository, JwtService jwtService) {
+    public OAuth2SuccessHandler(UserRepository userRepository, JwtService jwtService,
+                                @Value("${wallet.frontend.dashboard:http://localhost:5173/dashboard}") String frontendCallback) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.frontendCallback = frontendCallback;
     }
 
     @Override

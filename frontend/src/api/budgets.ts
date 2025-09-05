@@ -12,7 +12,9 @@ export interface BudgetRequest {
   amount: number
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+import { getApiBase } from './http'
+
+const API_URL = getApiBase()
 
 // Get current month's budget
 export async function getCurrentBudget(): Promise<Budget | null> {
