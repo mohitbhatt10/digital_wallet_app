@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.domain.Page;
 
 @RestController
 @RequestMapping("/expenses")
@@ -48,14 +49,16 @@ public class ExpenseController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<List<ExpenseResponse>> filter(
+    public ResponseEntity<Page<ExpenseResponse>> filter(
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) List<Long> categoryIds,
-            @RequestParam(required = false) List<Long> tagIds) {
-        List<ExpenseResponse> filtered = expenseService.filter(user, startDate, endDate, categoryIds, tagIds)
-                .stream().map(expenseService::toResponse).toList();
-        return ResponseEntity.ok(filtered);
+            @RequestParam(required = false) List<Long> tagIds,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<Expense> expensePage = expenseService.filter(user, startDate, endDate, categoryIds, tagIds, page, size);
+        Page<ExpenseResponse> responsePage = expensePage.map(expenseService::toResponse);
+        return ResponseEntity.ok(responsePage);
     }
 }

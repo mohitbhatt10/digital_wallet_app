@@ -43,12 +43,24 @@ export async function deleteExpense(id: number) {
   await http.delete(`/expenses/${id}`)
 }
 
+export interface PagedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+}
+
 export async function filterExpenses(params: {
   startDate?: string;
   endDate?: string;
   categoryIds?: number[];
   tagIds?: number[];
-}): Promise<Expense[]> {
+  page?: number;
+  size?: number;
+}): Promise<PagedResponse<Expense>> {
   const searchParams = new URLSearchParams()
   
   if (params.startDate) searchParams.append('startDate', params.startDate)
@@ -59,7 +71,9 @@ export async function filterExpenses(params: {
   if (params.tagIds?.length) {
     params.tagIds.forEach(id => searchParams.append('tagIds', id.toString()))
   }
+  if (params.page !== undefined) searchParams.append('page', params.page.toString())
+  if (params.size !== undefined) searchParams.append('size', params.size.toString())
 
-  const { data } = await http.get<Expense[]>(`/expenses/filter?${searchParams.toString()}`)
+  const { data } = await http.get<PagedResponse<Expense>>(`/expenses/filter?${searchParams.toString()}`)
   return data
 }

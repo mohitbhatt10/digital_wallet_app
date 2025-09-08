@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { listCategories, Category } from "../api/categories";
 import { listTags, Tag } from "../api/tags";
-import { Expense, filterExpenses } from "../api/expenses";
+import { Expense, filterExpenses, PagedResponse } from "../api/expenses";
 
 interface FilterState {
   startDate: string;
@@ -19,6 +19,12 @@ export default function ExpenseFilters() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [pageSize] = useState(10);
 
   const [filters, setFilters] = useState<FilterState>({
     startDate: "",
@@ -75,19 +81,25 @@ export default function ExpenseFilters() {
     }
   }
 
-  async function applyFilters() {
+  async function applyFilters(page: number = 0) {
     setLoading(true);
     setError(undefined);
 
     try {
-      const filteredExpenses = await filterExpenses({
+      const response = await filterExpenses({
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
         categoryIds:
           filters.categoryIds.length > 0 ? filters.categoryIds : undefined,
         tagIds: filters.tagIds.length > 0 ? filters.tagIds : undefined,
+        page,
+        size: pageSize,
       });
-      setExpenses(filteredExpenses);
+      
+      setExpenses(response.content);
+      setCurrentPage(response.number);
+      setTotalPages(response.totalPages);
+      setTotalElements(response.totalElements);
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to filter expenses");
     } finally {
@@ -103,6 +115,16 @@ export default function ExpenseFilters() {
       tagIds: [],
     });
     setExpenses([]);
+    setCurrentPage(0);
+    setTotalPages(0);
+    setTotalElements(0);
+  }
+
+  function handlePageChange(newPage: number) {
+    if (newPage >= 0 && newPage < totalPages) {
+      setCurrentPage(newPage);
+      applyFilters(newPage);
+    }
   }
 
   function toggleCategory(categoryId: number) {
@@ -324,7 +346,7 @@ export default function ExpenseFilters() {
                 {/* Action Buttons */}
                 <div className="space-y-3">
                   <button
-                    onClick={applyFilters}
+                    onClick={() => applyFilters(0)}
                     disabled={loading}
                     className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -379,8 +401,8 @@ export default function ExpenseFilters() {
                         {formatCurrency(totalAmount)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {expenses.length} expense
-                        {expenses.length !== 1 ? "s" : ""}
+                        Page {currentPage + 1} of {totalPages} • {totalElements} total expense
+                        {totalElements !== 1 ? "s" : ""}
                       </div>
                     </div>
                   </div>
@@ -468,6 +490,61 @@ export default function ExpenseFilters() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+                
+                {/* Pagination Controls */}
+                {expenses.length > 0 && totalPages > 1 && (
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} expenses
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 0}
+                        className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i;
+                          } else if (currentPage <= 2) {
+                            pageNum = i;
+                          } else if (currentPage >= totalPages - 3) {
+                            pageNum = totalPages - 5 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                                pageNum === currentPage
+                                  ? 'bg-blue-600 text-white'
+                                  : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              {pageNum + 1}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage >= totalPages - 1}
+                        className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
