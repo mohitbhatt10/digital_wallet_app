@@ -812,25 +812,30 @@ export default function Dashboard() {
           <div className="lg:col-span-2 card p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Recent Expenses</h2>
-              <button
-                className="btn-outline text-xs"
-                onClick={() => {
-                  setEditingExpense(null);
-                  setExpenseForm({
-                    amount: "",
-                    description: "",
-                    categoryId: "",
-                    subCategoryId: "",
-                    tagIds: [],
-                    paymentType: "",
-                    transactionDate: formatDateForInput(),
-                  });
-                  setShowExpense(true);
-                  setShowAllExpenseSystemTags(false);
-                }}
-              >
-                Add
-              </button>
+              <div className="flex items-center gap-2">
+                <Link to="/expenses/filter" className="btn-outline text-xs">
+                  Filter
+                </Link>
+                <button
+                  className="btn-outline text-xs"
+                  onClick={() => {
+                    setEditingExpense(null);
+                    setExpenseForm({
+                      amount: "",
+                      description: "",
+                      categoryId: "",
+                      subCategoryId: "",
+                      tagIds: [],
+                      paymentType: "",
+                      transactionDate: formatDateForInput(),
+                    });
+                    setShowExpense(true);
+                    setShowAllExpenseSystemTags(false);
+                  }}
+                >
+                  Add
+                </button>
+              </div>
             </div>
             {recentExpenses.length === 0 && (
               <div className="text-sm text-zinc-500">No expenses yet.</div>

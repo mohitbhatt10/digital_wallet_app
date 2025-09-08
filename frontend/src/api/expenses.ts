@@ -42,3 +42,24 @@ export async function updateExpense(id: number, payload: {
 export async function deleteExpense(id: number) {
   await http.delete(`/expenses/${id}`)
 }
+
+export async function filterExpenses(params: {
+  startDate?: string;
+  endDate?: string;
+  categoryIds?: number[];
+  tagIds?: number[];
+}): Promise<Expense[]> {
+  const searchParams = new URLSearchParams()
+  
+  if (params.startDate) searchParams.append('startDate', params.startDate)
+  if (params.endDate) searchParams.append('endDate', params.endDate)
+  if (params.categoryIds?.length) {
+    params.categoryIds.forEach(id => searchParams.append('categoryIds', id.toString()))
+  }
+  if (params.tagIds?.length) {
+    params.tagIds.forEach(id => searchParams.append('tagIds', id.toString()))
+  }
+
+  const { data } = await http.get<Expense[]>(`/expenses/filter?${searchParams.toString()}`)
+  return data
+}

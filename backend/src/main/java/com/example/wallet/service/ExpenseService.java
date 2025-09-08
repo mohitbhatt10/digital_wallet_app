@@ -6,7 +6,9 @@ import com.example.wallet.model.*;
 import com.example.wallet.repository.*;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 @Service
@@ -96,6 +98,38 @@ public class ExpenseService {
         }
 
         expenseRepository.delete(expense);
+    }
+
+    public List<Expense> filter(User user, LocalDate startDate, LocalDate endDate, List<Long> categoryIds,
+            List<Long> tagIds) {
+        return expenseRepository.findAll().stream()
+                .filter(e -> e.getUser().getId().equals(user.getId()))
+                .filter(e -> {
+                    if (startDate != null && e.getTransactionDate().toLocalDate().isBefore(startDate)) {
+                        return false;
+                    }
+                    if (endDate != null && e.getTransactionDate().toLocalDate().isAfter(endDate)) {
+                        return false;
+                    }
+                    if (categoryIds != null && !categoryIds.isEmpty()) {
+                        if (e.getCategory() == null || !categoryIds.contains(e.getCategory().getId())) {
+                            return false;
+                        }
+                    }
+                    if (tagIds != null && !tagIds.isEmpty()) {
+                        if (e.getTags() == null || e.getTags().isEmpty()) {
+                            return false;
+                        }
+                        boolean hasMatchingTag = e.getTags().stream()
+                                .anyMatch(tag -> tagIds.contains(tag.getId()));
+                        if (!hasMatchingTag) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })
+                .sorted(Comparator.comparing(Expense::getTransactionDate).reversed())
+                .toList();
     }
 
     public ExpenseResponse toResponse(Expense e) {
