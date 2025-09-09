@@ -808,14 +808,12 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-        <div className="mt-10 grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 card p-6">
+        <div className="mt-10">
+          <div className="card p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Recent Expenses</h2>
               <div className="flex items-center gap-2">
-                <Link to="/expenses/filter" className="btn-outline text-xs">
-                  Filter
-                </Link>
+                <Link to="/expenses/filter" className="btn-outline text-xs">Filter</Link>
                 <button
                   className="btn-outline text-xs"
                   onClick={() => {
@@ -849,23 +847,13 @@ export default function Dashboard() {
                   }`}
                 >
                   <div className="flex flex-col">
-                    <span className="font-medium text-zinc-800">
-                      {formatCurrency(e.amount)}
-                    </span>
-                    <span className="text-zinc-500">
-                      {e.category?.name || "—"}
-                    </span>
+                    <span className="font-medium text-zinc-800">{formatCurrency(e.amount)}</span>
+                    <span className="text-zinc-500">{e.category?.name || "—"}</span>
 
-                    {/* Tag pills on next line */}
                     {e.tags && e.tags.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {e.tags.map((t) => (
-                          <span
-                            key={t.id ?? t.name}
-                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${getTagClass(
-                              t
-                            )}`}
-                          >
+                          <span key={t.id ?? t.name} className={`text-xs font-medium px-2 py-0.5 rounded-full ${getTagClass(t)}`}>
                             {t.name}
                           </span>
                         ))}
@@ -873,76 +861,30 @@ export default function Dashboard() {
                     )}
 
                     {e.paymentType && (
-                      <span className="text-xs text-zinc-400 mt-1">
-                        via {e.paymentType.replace("-", " ")}
-                      </span>
+                      <span className="text-xs text-zinc-400 mt-1">via {e.paymentType.replace("-", " ")}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <span className="text-xs text-zinc-400">
-                        {new Date(e.transactionDate).toLocaleDateString()}
-                      </span>
+                      <span className="text-xs text-zinc-400">{new Date(e.transactionDate).toLocaleDateString()}</span>
                       <br />
-                      <span className="text-xs text-zinc-300">
-                        {new Date(e.transactionDate).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
+                      <span className="text-xs text-zinc-300">{new Date(e.transactionDate).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}</span>
                     </div>
                     <div className="flex gap-1 opacity-100 transition-opacity duration-200">
-                      <button
-                        onClick={() => handleEditExpense(e)}
-                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors duration-200"
-                        title="Edit expense"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
+                      <button onClick={() => handleEditExpense(e)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors duration-200" title="Edit expense">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
-                      <button
-                        onClick={() => handleDeleteExpense(e.id)}
-                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200"
-                        title="Delete expense"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
+                      <button onClick={() => handleDeleteExpense(e.id)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200" title="Delete expense">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
                     </div>
                   </div>
                 </li>
               ))}
-            </ul>
-          </div>
-          <div className="card p-6">
-            <h2 className="text-lg font-semibold">Upcoming</h2>
-            <ul className="mt-4 space-y-3 text-sm text-zinc-600 list-disc list-inside">
-              <li>Budget creation & tracking</li>
-              <li>Category management</li>
-              <li>Spending analytics</li>
-              <li>Tagging & filtering</li>
             </ul>
           </div>
         </div>

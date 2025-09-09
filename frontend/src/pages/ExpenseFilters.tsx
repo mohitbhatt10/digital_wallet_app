@@ -19,7 +19,7 @@ export default function ExpenseFilters() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -95,7 +95,7 @@ export default function ExpenseFilters() {
         page,
         size: pageSize,
       });
-      
+
       setExpenses(response.content);
       setCurrentPage(response.number);
       setTotalPages(response.totalPages);
@@ -401,7 +401,8 @@ export default function ExpenseFilters() {
                         {formatCurrency(totalAmount)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        Page {currentPage + 1} of {totalPages} • {totalElements} total expense
+                        Page {currentPage + 1} of {totalPages} • {totalElements}{" "}
+                        total expense
                         {totalElements !== 1 ? "s" : ""}
                       </div>
                     </div>
@@ -492,12 +493,14 @@ export default function ExpenseFilters() {
                     ))}
                   </div>
                 )}
-                
+
                 {/* Pagination Controls */}
                 {expenses.length > 0 && totalPages > 1 && (
                   <div className="mt-6 flex items-center justify-between">
                     <div className="text-sm text-gray-600">
-                      Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} expenses
+                      Showing {currentPage * pageSize + 1} to{" "}
+                      {Math.min((currentPage + 1) * pageSize, totalElements)} of{" "}
+                      {totalElements} expenses
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -507,36 +510,39 @@ export default function ExpenseFilters() {
                       >
                         Previous
                       </button>
-                      
+
                       <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i;
-                          } else if (currentPage <= 2) {
-                            pageNum = i;
-                          } else if (currentPage >= totalPages - 3) {
-                            pageNum = totalPages - 5 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
+                        {Array.from(
+                          { length: Math.min(5, totalPages) },
+                          (_, i) => {
+                            let pageNum;
+                            if (totalPages <= 5) {
+                              pageNum = i;
+                            } else if (currentPage <= 2) {
+                              pageNum = i;
+                            } else if (currentPage >= totalPages - 3) {
+                              pageNum = totalPages - 5 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                                  pageNum === currentPage
+                                    ? "bg-blue-600 text-white"
+                                    : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                                }`}
+                              >
+                                {pageNum + 1}
+                              </button>
+                            );
                           }
-                          
-                          return (
-                            <button
-                              key={pageNum}
-                              onClick={() => handlePageChange(pageNum)}
-                              className={`px-3 py-2 text-sm font-medium rounded-lg ${
-                                pageNum === currentPage
-                                  ? 'bg-blue-600 text-white'
-                                  : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                              }`}
-                            >
-                              {pageNum + 1}
-                            </button>
-                          );
-                        })}
+                        )}
                       </div>
-                      
+
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage >= totalPages - 1}
