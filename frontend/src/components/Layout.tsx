@@ -42,7 +42,7 @@ export default function Layout({
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-50 via-white to-blue-50" />
 
       {/* Header */}
-      <header className="px-8 py-4 flex items-center justify-between backdrop-blur supports-[backdrop-filter]:bg-white/70 bg-white/60 border-b border-zinc-200/60">
+      <header className="relative z-40 px-8 py-4 flex items-center justify-between backdrop-blur supports-[backdrop-filter]:bg-white/70 bg-white/60 border-b border-zinc-200/60">
         <Link
           to={user ? "/dashboard" : "/"}
           className="flex items-center gap-2"
@@ -90,7 +90,7 @@ export default function Layout({
               </nav>
 
               {/* User Dropdown */}
-              <div className="relative" ref={menuRef}>
+              <div className="relative z-50" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen((o) => !o)}
                   className="group flex items-center gap-3 px-3 py-2 rounded-full hover:bg-gray-100/70 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-1 focus:ring-offset-white"
@@ -131,7 +131,7 @@ export default function Layout({
                 {menuOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 mt-2 w-60 rounded-2xl bg-white/90 backdrop-blur-xl shadow-xl ring-1 ring-black/5 border border-white/40 p-2 animate-in fade-in slide-in-from-top-2"
+                    className="absolute right-0 mt-2 w-60 rounded-2xl bg-white/90 backdrop-blur-xl shadow-xl ring-1 ring-black/5 border border-white/40 p-2 animate-in fade-in slide-in-from-top-2 z-50"
                   >
                     <div className="px-3 py-2 text-[10px] font-semibold tracking-wide text-gray-500 uppercase">
                       Account
