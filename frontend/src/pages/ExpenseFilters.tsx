@@ -26,11 +26,23 @@ export default function ExpenseFilters() {
   const [totalElements, setTotalElements] = useState(0);
   const [pageSize] = useState(10);
 
-  const [filters, setFilters] = useState<FilterState>({
-    startDate: "",
-    endDate: "",
-    categoryIds: [],
-    tagIds: [],
+  const [filters, setFilters] = useState<FilterState>(() => {
+    // Default to first day of current month through today
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    // Use a local date formatter (YYYY-MM-DD) to avoid UTC shift from toISOString()
+    const fmt = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+    return {
+      startDate: fmt(firstDayOfMonth),
+      endDate: fmt(today),
+      categoryIds: [],
+      tagIds: [],
+    };
   });
 
   // Currency formatting helpers
@@ -76,6 +88,8 @@ export default function ExpenseFilters() {
       ]);
       setCategories(categoriesData);
       setTags(tagsData);
+      // Apply default filters (current month) on first load
+      applyFilters(0);
     } catch (err) {
       setError("Failed to load filter options");
     }
