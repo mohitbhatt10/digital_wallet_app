@@ -56,6 +56,7 @@ export default function Dashboard() {
     useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [error, setError] = useState<string | undefined>();
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   // Currency formatting helpers (use user's currency if available)
   const formatCurrency = (amount: number) => {
@@ -672,139 +673,165 @@ export default function Dashboard() {
             )}
           </div>
           <div className="card p-5">
-            <h3 className="text-sm font-medium text-zinc-600">Categories</h3>
-            <div className="mt-4">
-              <div className="flex items-start gap-6">
-                <div className="flex-shrink-0">
-                  {(() => {
-                    const { list, totalSum } = getCategoryDistribution();
-                    const size = 120;
-                    const cx = size / 2;
-                    const cy = size / 2;
-                    const r = size / 2;
-                    let angleStart = 0;
-                    const colors = [
-                      "#6366F1",
-                      "#EF4444",
-                      "#10B981",
-                      "#F59E0B",
-                      "#8B5CF6",
-                      "#06B6D4",
-                      "#EC4899",
-                      "#3B82F6",
-                    ];
+            <h3 className="text-sm font-medium text-zinc-600 mb-4">
+              Categories
+            </h3>
 
-                    if (list.length === 0 || totalSum === 0) {
+            {/* Pie Chart at the top */}
+            <div className="flex justify-center mb-6">
+              {(() => {
+                const { list, totalSum } = getCategoryDistribution();
+                const size = 120;
+                const cx = size / 2;
+                const cy = size / 2;
+                const r = size / 2;
+                let angleStart = 0;
+                const colors = [
+                  "#6366F1",
+                  "#EF4444",
+                  "#10B981",
+                  "#F59E0B",
+                  "#8B5CF6",
+                  "#06B6D4",
+                  "#EC4899",
+                  "#3B82F6",
+                ];
+
+                if (list.length === 0 || totalSum === 0) {
+                  return (
+                    <div className="w-28 h-28 bg-gray-50 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-gray-400">No data</span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <svg
+                    width={size}
+                    height={size}
+                    viewBox={`0 0 ${size} ${size}`}
+                  >
+                    {list.map((item, idx) => {
+                      const value = item.total;
+                      const angle = (value / totalSum) * 360;
+                      const path = describeArc(
+                        cx,
+                        cy,
+                        r,
+                        angleStart,
+                        angleStart + angle
+                      );
+                      const color = colors[idx % colors.length];
+                      angleStart += angle;
                       return (
-                        <div className="w-28 h-28 bg-gray-50 rounded-full flex items-center justify-center">
-                          <span className="text-xs text-gray-400">No data</span>
+                        <path
+                          key={item.id}
+                          d={path}
+                          fill={color}
+                          stroke="#fff"
+                          strokeWidth={0.5}
+                        />
+                      );
+                    })}
+                    <circle cx={cx} cy={cy} r={r * 0.45} fill="#fff" />
+                    <text
+                      x={cx}
+                      y={cy - 4}
+                      textAnchor="middle"
+                      style={{ fontSize: 12, fill: "#374151" }}
+                    >
+                      {formatCurrency(totalSum)}
+                    </text>
+                    <text
+                      x={cx}
+                      y={cy + 12}
+                      textAnchor="middle"
+                      style={{ fontSize: 10, fill: "#6B7280" }}
+                    >
+                      This month
+                    </text>
+                  </svg>
+                );
+              })()}
+            </div>
+
+            {/* Categories List below the chart */}
+            <div className="space-y-1.5">
+              {(() => {
+                const { list, totalSum } = getCategoryDistribution();
+                const colors = [
+                  "#6366F1",
+                  "#EF4444",
+                  "#10B981",
+                  "#F59E0B",
+                  "#8B5CF6",
+                  "#06B6D4",
+                  "#EC4899",
+                  "#3B82F6",
+                ];
+
+                if (list.length === 0) {
+                  return (
+                    <div className="text-xs text-gray-500 text-center py-2">
+                      No spending in this month
+                    </div>
+                  );
+                }
+
+                // Show only top 5 categories by default
+                const displayList = showAllCategories ? list : list.slice(0, 5);
+
+                return (
+                  <>
+                    {displayList.map((it, idx) => {
+                      const pct =
+                        totalSum > 0 ? (it.total / totalSum) * 100 : 0;
+                      return (
+                        <div
+                          key={it.id}
+                          className="flex items-center justify-between py-1"
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span
+                              style={{
+                                backgroundColor: colors[idx % colors.length],
+                              }}
+                              className="w-2.5 h-2.5 inline-block rounded-sm flex-shrink-0"
+                            />
+                            <span className="text-xs text-gray-700 truncate">
+                              {it.name}
+                            </span>
+                          </div>
+                          <div className="text-right flex-shrink-0 ml-2">
+                            <div className="text-xs font-medium text-gray-900">
+                              {formatCurrency(it.total)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {pct.toFixed(1)}%
+                            </div>
+                          </div>
                         </div>
                       );
-                    }
+                    })}
 
-                    return (
-                      <svg
-                        width={size}
-                        height={size}
-                        viewBox={`0 0 ${size} ${size}`}
-                      >
-                        {list.map((item, idx) => {
-                          const value = item.total;
-                          const angle = (value / totalSum) * 360;
-                          const path = describeArc(
-                            cx,
-                            cy,
-                            r,
-                            angleStart,
-                            angleStart + angle
-                          );
-                          const color = colors[idx % colors.length];
-                          angleStart += angle;
-                          return (
-                            <path
-                              key={item.id}
-                              d={path}
-                              fill={color}
-                              stroke="#fff"
-                              strokeWidth={0.5}
-                            />
-                          );
-                        })}
-                        <circle cx={cx} cy={cy} r={r * 0.45} fill="#fff" />
-                        <text
-                          x={cx}
-                          y={cy - 4}
-                          textAnchor="middle"
-                          style={{ fontSize: 12, fill: "#374151" }}
+                    {/* Show More/Less button if there are more than 5 categories */}
+                    {list.length > 5 && (
+                      <div className="pt-2 border-t border-gray-100">
+                        <button
+                          onClick={() =>
+                            setShowAllCategories(!showAllCategories)
+                          }
+                          className="text-xs text-blue-600 hover:text-blue-700 font-medium w-full text-center py-1 hover:bg-blue-50 rounded transition-colors"
                         >
-                          {formatCurrency(totalSum)}
-                        </text>
-                        <text
-                          x={cx}
-                          y={cy + 12}
-                          textAnchor="middle"
-                          style={{ fontSize: 10, fill: "#6B7280" }}
-                        >
-                          This month
-                        </text>
-                      </svg>
-                    );
-                  })()}
-                </div>
-                <div className="flex-1">
-                  <div className="grid grid-cols-1 gap-2">
-                    {(() => {
-                      const { list, totalSum } = getCategoryDistribution();
-                      const colors = [
-                        "#6366F1",
-                        "#EF4444",
-                        "#10B981",
-                        "#F59E0B",
-                        "#8B5CF6",
-                        "#06B6D4",
-                        "#EC4899",
-                        "#3B82F6",
-                      ];
-                      if (list.length === 0)
-                        return (
-                          <div className="text-sm text-gray-500">
-                            No spending in this month
-                          </div>
-                        );
-                      return list.map((it, idx) => {
-                        const pct =
-                          totalSum > 0 ? (it.total / totalSum) * 100 : 0;
-                        return (
-                          <div
-                            key={it.id}
-                            className="flex items-center justify-between"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span
-                                style={{
-                                  backgroundColor: colors[idx % colors.length],
-                                }}
-                                className="w-3 h-3 inline-block rounded-sm"
-                              />
-                              <span className="text-sm text-gray-700">
-                                {it.name}
-                              </span>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm font-medium text-gray-900">
-                                {formatCurrency(it.total)}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {pct.toFixed(1)}%
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
-              </div>
+                          {showAllCategories
+                            ? "Show Less"
+                            : `Show ${list.length - 5} More`}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -813,7 +840,9 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Recent Expenses</h2>
               <div className="flex items-center gap-2">
-                <Link to="/expenses/filter" className="btn-outline text-xs">Filter</Link>
+                <Link to="/expenses/filter" className="btn-outline text-xs">
+                  Filter
+                </Link>
                 <button
                   className="btn-outline text-xs"
                   onClick={() => {
@@ -847,13 +876,22 @@ export default function Dashboard() {
                   }`}
                 >
                   <div className="flex flex-col">
-                    <span className="font-medium text-zinc-800">{formatCurrency(e.amount)}</span>
-                    <span className="text-zinc-500">{e.category?.name || "—"}</span>
+                    <span className="font-medium text-zinc-800">
+                      {formatCurrency(e.amount)}
+                    </span>
+                    <span className="text-zinc-500">
+                      {e.category?.name || "—"}
+                    </span>
 
                     {e.tags && e.tags.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {e.tags.map((t) => (
-                          <span key={t.id ?? t.name} className={`text-xs font-medium px-2 py-0.5 rounded-full ${getTagClass(t)}`}>
+                          <span
+                            key={t.id ?? t.name}
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${getTagClass(
+                              t
+                            )}`}
+                          >
                             {t.name}
                           </span>
                         ))}
@@ -861,24 +899,61 @@ export default function Dashboard() {
                     )}
 
                     {e.paymentType && (
-                      <span className="text-xs text-zinc-400 mt-1">via {e.paymentType.replace("-", " ")}</span>
+                      <span className="text-xs text-zinc-400 mt-1">
+                        via {e.paymentType.replace("-", " ")}
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <span className="text-xs text-zinc-400">{new Date(e.transactionDate).toLocaleDateString()}</span>
+                      <span className="text-xs text-zinc-400">
+                        {new Date(e.transactionDate).toLocaleDateString()}
+                      </span>
                       <br />
-                      <span className="text-xs text-zinc-300">{new Date(e.transactionDate).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}</span>
+                      <span className="text-xs text-zinc-300">
+                        {new Date(e.transactionDate).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
                     </div>
                     <div className="flex gap-1 opacity-100 transition-opacity duration-200">
-                      <button onClick={() => handleEditExpense(e)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors duration-200" title="Edit expense">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <button
+                        onClick={() => handleEditExpense(e)}
+                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors duration-200"
+                        title="Edit expense"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
                         </svg>
                       </button>
-                      <button onClick={() => handleDeleteExpense(e.id)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200" title="Delete expense">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <button
+                        onClick={() => handleDeleteExpense(e.id)}
+                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200"
+                        title="Delete expense"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
                     </div>
