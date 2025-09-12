@@ -3,6 +3,7 @@ import { login } from "../api/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getApiBase } from "../api/http";
+import Layout from "../components/Layout";
 
 const API_BASE = getApiBase();
 
@@ -31,21 +32,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-50 via-white to-indigo-50" />
-      <nav className="px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold">
-            DW
-          </div>
-          <span className="font-semibold gradient-text">Digital Wallet</span>
-        </Link>
-        <div className="flex items-center gap-2 text-sm">
-          <Link to="/signup" className="btn-ghost">
-            Sign up
-          </Link>
-        </div>
-      </nav>
+    <Layout currentPage="login" showAuthActions={true}>
       <div className="flex-1 flex items-center justify-center px-4 pb-20">
         <div className="w-full max-w-md">
           <div className="card p-8">
@@ -110,6 +97,6 @@ export default function Login() {
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

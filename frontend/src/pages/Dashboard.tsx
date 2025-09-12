@@ -16,6 +16,7 @@ import {
   getBudgetByMonthYear,
   Budget,
 } from "../api/budgets";
+import Layout from "../components/Layout";
 
 export default function Dashboard() {
   const location = useLocation();
@@ -488,28 +489,8 @@ export default function Dashboard() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-50 via-white to-blue-50" />
-      <nav className="px-6 py-4 flex items-center justify-between backdrop-blur supports-[backdrop-filter]:bg-white/60 bg-white/50 border-b border-white/40">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
-            DW
-          </div>
-          <span className="font-semibold gradient-text hidden sm:inline">
-            Digital Wallet
-          </span>
-        </Link>
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-zinc-600 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            {user.firstName || user.username}
-          </span>
-          <button onClick={logout} className="btn-ghost">
-            Logout
-          </button>
-        </div>
-      </nav>
-      <main className="flex-1 px-6 py-10 max-w-7xl w-full mx-auto">
+    <Layout currentPage="dashboard">
+      <div className="px-6 py-10 max-w-7xl w-full mx-auto">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
           <div className="flex gap-2">
@@ -963,7 +944,7 @@ export default function Dashboard() {
             </ul>
           </div>
         </div>
-      </main>
+      </div>
       {(showExpense || showCategory || showTag || showBudget) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300 overflow-y-auto">
           <div className="bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl w-full max-w-4xl relative overflow-hidden transform transition-all duration-500 scale-100 opacity-100 my-8">
@@ -2498,6 +2479,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-    </div>
+    </Layout>
   );
 }

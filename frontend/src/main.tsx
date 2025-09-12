@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import ExpenseFilters from "./pages/ExpenseFilters";
+import Profile from "./pages/Profile";
 import OAuthCallback from "./pages/OAuthCallback";
 import Protected from "./components/Protected";
 import { AuthProvider } from "./context/AuthContext";
@@ -20,6 +21,7 @@ const router = createBrowserRouter([
     children: [
       { path: "/dashboard", element: <Dashboard /> },
       { path: "/expenses/filter", element: <ExpenseFilters /> },
+      { path: "/profile", element: <Profile /> },
     ],
   },
   { path: "/oauth2/callback", element: <OAuthCallback /> },

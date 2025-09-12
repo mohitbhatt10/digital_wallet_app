@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { listCategories, Category } from "../api/categories";
 import { listTags, Tag } from "../api/tags";
 import { Expense, filterExpenses, PagedResponse } from "../api/expenses";
+import Layout from "../components/Layout";
 
 interface FilterState {
   startDate: string;
@@ -172,40 +173,8 @@ export default function ExpenseFilters() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-50 via-white to-blue-50" />
-
-      {/* Navigation */}
-      <nav className="px-6 py-4 flex items-center justify-between backdrop-blur supports-[backdrop-filter]:bg-white/60 bg-white/50 border-b border-white/40">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
-            DW
-          </div>
-          <span className="font-semibold gradient-text hidden sm:inline">
-            Digital Wallet
-          </span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link
-            to="/dashboard"
-            className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            Dashboard
-          </Link>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600">Welcome, {user.username}</span>
-            <button
-              onClick={logout}
-              className="text-red-600 hover:text-red-800 transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="flex-1 px-6 py-8">
+    <Layout currentPage="filters">
+      <div className="px-6 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -571,7 +540,7 @@ export default function ExpenseFilters() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 }
