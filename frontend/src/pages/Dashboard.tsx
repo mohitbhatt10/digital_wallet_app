@@ -256,6 +256,17 @@ export default function Dashboard() {
     setLoading(true);
     setError(undefined);
     try {
+      // Helper to serialize a datetime-local input value to a local (timezone-naive) ISO-like string
+      // e.g. '2025-09-12T14:30' -> '2025-09-12T14:30:00'
+      // We avoid toISOString() because it converts to UTC (adding a 'Z' and shifting the clock)
+      const formatLocalDateTimeForServer = (value: string) => {
+        const d = new Date(value); // parsed as local time
+        if (isNaN(d.getTime())) return value; // fall back if invalid
+        const pad = (n: number) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
+          d.getDate()
+        )}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      };
       const payload = {
         amount: parseFloat(expenseForm.amount),
         description: expenseForm.description || undefined,
@@ -267,7 +278,7 @@ export default function Dashboard() {
         tagIds: expenseForm.tagIds.length ? expenseForm.tagIds : undefined,
         paymentType: expenseForm.paymentType || undefined,
         transactionDate: expenseForm.transactionDate
-          ? new Date(expenseForm.transactionDate).toISOString()
+          ? formatLocalDateTimeForServer(expenseForm.transactionDate)
           : undefined,
       };
 
@@ -484,6 +495,23 @@ export default function Dashboard() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
       d.getDate()
     )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  // Helpers to display dates & times strictly in the user's local timezone without accidental UTC shifts
+  function formatLocalDate(value: string | Date | undefined) {
+    if (!value) return "-";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "-";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`; // DD/MM/YYYY
+  }
+
+  function formatLocalTime(value: string | Date | undefined) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`; // 24h HH:MM
   }
 
   if (!user) return null;
@@ -888,14 +916,11 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <span className="text-xs text-zinc-400">
-                        {new Date(e.transactionDate).toLocaleDateString()}
+                        {formatLocalDate(e.transactionDate)}
                       </span>
                       <br />
                       <span className="text-xs text-zinc-300">
-                        {new Date(e.transactionDate).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatLocalTime(e.transactionDate)}
                       </span>
                     </div>
                     <div className="flex gap-1 opacity-100 transition-opacity duration-200">
