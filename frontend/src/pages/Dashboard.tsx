@@ -58,6 +58,14 @@ export default function Dashboard() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [showAllCategories, setShowAllCategories] = useState(false);
+  // Spend analysis specific UI state
+  const [showSpendDetails, setShowSpendDetails] = useState(false);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
+  const nowRef = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<number>(nowRef.getMonth()); // 0-indexed
+  const [selectedYear, setSelectedYear] = useState<number>(
+    nowRef.getFullYear()
+  );
 
   // Currency formatting helpers (use user's currency if available)
   const formatCurrency = (amount: number) => {
@@ -175,6 +183,35 @@ export default function Dashboard() {
       totals.set(parentId, existing);
     }
 
+    const list = Array.from(totals.entries()).map(([id, v]) => ({
+      id,
+      name: v.name,
+      total: v.total,
+    }));
+    list.sort((a, b) => b.total - a.total);
+    const totalSum = list.reduce((s, it) => s + it.total, 0);
+    return { list, totalSum };
+  };
+
+  // Month-aware distribution for spend analysis card
+  const getCategoryDistributionFor = (month: number, year: number) => {
+    const monthly = expenses.filter((expense) => {
+      const d = new Date(expense.transactionDate);
+      return d.getFullYear() === year && d.getMonth() === month;
+    });
+    const totals = new Map<number, { name: string; total: number }>();
+    for (const e of monthly) {
+      let parentId = e.category?.parentId ?? e.category?.id;
+      let parentName =
+        e.category?.parentName ?? e.category?.name ?? "Uncategorized";
+      if (parentId == null) {
+        parentId = -1;
+        parentName = "Uncategorized";
+      }
+      const existing = totals.get(parentId) ?? { name: parentName, total: 0 };
+      existing.total += e.amount;
+      totals.set(parentId, existing);
+    }
     const list = Array.from(totals.entries()).map(([id, v]) => ({
       id,
       name: v.name,
@@ -681,167 +718,227 @@ export default function Dashboard() {
               </p>
             )}
           </div>
-          <div className="card p-5">
-            <h3 className="text-sm font-medium text-zinc-600 mb-4">
-              Categories
-            </h3>
+          {/* Spend Analysis Card (replaces Categories card) */}
+          <div className="card p-5 flex flex-col justify-between">
+            {(() => {
+              const { list, totalSum } = getCategoryDistributionFor(
+                selectedMonth,
+                selectedYear
+              );
+              const top3 = list.slice(0, 3);
+              const monthLabel = new Date(
+                selectedYear,
+                selectedMonth
+              ).toLocaleString("default", { month: "long" });
+              const colors = [
+                "#F97316",
+                "#EA580C",
+                "#FB923C",
+                "#FDBA74",
+                "#C2410C",
+                "#FFEDD5",
+              ]; // warm orange palette
+              let angleStart = 0;
+              const size = 120;
+              const cx = size / 2;
+              const cy = size / 2;
+              const r = size / 2;
 
-            {/* Pie Chart at the top */}
-            <div className="flex justify-center mb-6">
-              {(() => {
-                const { list, totalSum } = getCategoryDistribution();
-                const size = 120;
-                const cx = size / 2;
-                const cy = size / 2;
-                const r = size / 2;
-                let angleStart = 0;
-                const colors = [
-                  "#6366F1",
-                  "#EF4444",
-                  "#10B981",
-                  "#F59E0B",
-                  "#8B5CF6",
-                  "#06B6D4",
-                  "#EC4899",
-                  "#3B82F6",
-                ];
-
-                if (list.length === 0 || totalSum === 0) {
-                  return (
-                    <div className="w-28 h-28 bg-gray-50 rounded-full flex items-center justify-center">
-                      <span className="text-xs text-gray-400">No data</span>
-                    </div>
-                  );
-                }
-
-                return (
-                  <svg
-                    width={size}
-                    height={size}
-                    viewBox={`0 0 ${size} ${size}`}
-                  >
-                    {list.map((item, idx) => {
-                      const value = item.total;
-                      const angle = (value / totalSum) * 360;
-                      const path = describeArc(
-                        cx,
-                        cy,
-                        r,
-                        angleStart,
-                        angleStart + angle
-                      );
-                      const color = colors[idx % colors.length];
-                      angleStart += angle;
-                      return (
-                        <path
-                          key={item.id}
-                          d={path}
-                          fill={color}
-                          stroke="#fff"
-                          strokeWidth={0.5}
-                        />
-                      );
-                    })}
-                    <circle cx={cx} cy={cy} r={r * 0.45} fill="#fff" />
-                    <text
-                      x={cx}
-                      y={cy - 4}
-                      textAnchor="middle"
-                      style={{ fontSize: 12, fill: "#374151" }}
-                    >
-                      {formatCurrency(totalSum)}
-                    </text>
-                    <text
-                      x={cx}
-                      y={cy + 12}
-                      textAnchor="middle"
-                      style={{ fontSize: 10, fill: "#6B7280" }}
-                    >
-                      This month
-                    </text>
-                  </svg>
-                );
-              })()}
-            </div>
-
-            {/* Categories List below the chart */}
-            <div className="space-y-1.5">
-              {(() => {
-                const { list, totalSum } = getCategoryDistribution();
-                const colors = [
-                  "#6366F1",
-                  "#EF4444",
-                  "#10B981",
-                  "#F59E0B",
-                  "#8B5CF6",
-                  "#06B6D4",
-                  "#EC4899",
-                  "#3B82F6",
-                ];
-
-                if (list.length === 0) {
-                  return (
-                    <div className="text-xs text-gray-500 text-center py-2">
-                      No spending in this month
-                    </div>
-                  );
-                }
-
-                // Show only top 5 categories by default
-                const displayList = showAllCategories ? list : list.slice(0, 5);
-
-                return (
-                  <>
-                    {displayList.map((it, idx) => {
-                      const pct =
-                        totalSum > 0 ? (it.total / totalSum) * 100 : 0;
-                      return (
-                        <div
-                          key={it.id}
-                          className="flex items-center justify-between py-1"
-                        >
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span
-                              style={{
-                                backgroundColor: colors[idx % colors.length],
-                              }}
-                              className="w-2.5 h-2.5 inline-block rounded-sm flex-shrink-0"
-                            />
-                            <span className="text-xs text-gray-700 truncate">
-                              {it.name}
-                            </span>
-                          </div>
-                          <div className="text-right flex-shrink-0 ml-2">
-                            <div className="text-xs font-medium text-gray-900">
-                              {formatCurrency(it.total)}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {pct.toFixed(1)}%
-                            </div>
-                          </div>
+              return (
+                <>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-[11px] font-semibold tracking-wide text-zinc-500">
+                        SPEND ANALYSIS*
+                      </h3>
+                      <p className="mt-1 text-2xl font-semibold tracking-tight">
+                        {formatCurrency(totalSum)}
+                      </p>
+                      <p className="text-[11px] text-zinc-400 mt-1">Inflow</p>
+                      {top3.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          {top3.map((c, idx) => {
+                            const pct =
+                              totalSum > 0 ? (c.total / totalSum) * 100 : 0;
+                            return (
+                              <div
+                                key={c.id}
+                                className="flex items-center justify-between text-xs"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    style={{
+                                      background: colors[idx % colors.length],
+                                    }}
+                                    className="h-7 w-7 rounded-md flex items-center justify-center text-white text-[10px] font-bold"
+                                  >
+                                    {c.name.substring(0, 1).toUpperCase()}
+                                  </span>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-zinc-700">
+                                      {c.name}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-400">
+                                      {pct.toFixed(2)}%
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-zinc-700 font-medium">
+                                  {formatCurrency(c.total)}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-
-                    {/* Show More/Less button if there are more than 5 categories */}
-                    {list.length > 5 && (
-                      <div className="pt-2 border-t border-gray-100">
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end">
+                      {/* Month selector */}
+                      <div className="relative mb-2">
                         <button
-                          onClick={() =>
-                            setShowAllCategories(!showAllCategories)
-                          }
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium w-full text-center py-1 hover:bg-blue-50 rounded transition-colors"
+                          onClick={() => setMonthDropdownOpen((o) => !o)}
+                          className="px-4 py-1.5 rounded-full border border-zinc-200 bg-white text-xs font-medium flex items-center gap-1 shadow-sm hover:bg-zinc-50"
                         >
-                          {showAllCategories
-                            ? "Show Less"
-                            : `Show ${list.length - 5} More`}
+                          {selectedMonth === nowRef.getMonth() &&
+                          selectedYear === nowRef.getFullYear()
+                            ? "This Month"
+                            : monthLabel}
+                          <svg
+                            className={`w-3 h-3 transition-transform ${
+                              monthDropdownOpen ? "rotate-180" : ""
+                            }`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
                         </button>
+                        {monthDropdownOpen && (
+                          <div className="absolute right-0 mt-2 w-44 bg-white border border-zinc-200 rounded-xl shadow-lg z-40 py-2 text-xs">
+                            {[...Array(6)].map((_, i) => {
+                              const date = new Date(
+                                nowRef.getFullYear(),
+                                nowRef.getMonth() - i,
+                                1
+                              );
+                              const m = date.getMonth();
+                              const y = date.getFullYear();
+                              const label =
+                                i === 0
+                                  ? `This Month - ${date.toLocaleString(
+                                      "default",
+                                      { month: "long" }
+                                    )}`
+                                  : date.toLocaleString("default", {
+                                      month: "long",
+                                    });
+                              return (
+                                <button
+                                  key={i}
+                                  onClick={() => {
+                                    setSelectedMonth(m);
+                                    setSelectedYear(y);
+                                    setMonthDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-4 py-1 hover:bg-zinc-100"
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
+                      {/* Donut chart */}
+                      <div className="relative">
+                        {(() => {
+                          if (totalSum === 0)
+                            return (
+                              <div className="w-32 h-32 rounded-full bg-zinc-50 flex items-center justify-center text-[11px] text-zinc-400">
+                                No data
+                              </div>
+                            );
+                          const segments = list.slice(0, 6); // limit
+                          angleStart = 0;
+                          return (
+                            <svg
+                              width={size}
+                              height={size}
+                              viewBox={`0 0 ${size} ${size}`}
+                            >
+                              {segments.map((seg, idx) => {
+                                const value = seg.total;
+                                const angle = (value / totalSum) * 360;
+                                const path = describeArc(
+                                  cx,
+                                  cy,
+                                  r,
+                                  angleStart,
+                                  angleStart + angle
+                                );
+                                const color = colors[idx % colors.length];
+                                angleStart += angle;
+                                return (
+                                  <path
+                                    key={seg.id}
+                                    d={path}
+                                    fill={color}
+                                    stroke="#fff"
+                                    strokeWidth={1}
+                                  />
+                                );
+                              })}
+                              <circle
+                                cx={cx}
+                                cy={cy}
+                                r={r * 0.55}
+                                fill="#fff"
+                              />
+                              <text
+                                x={cx}
+                                y={cy - 2}
+                                textAnchor="middle"
+                                style={{
+                                  fontSize: 13,
+                                  fill: "#111827",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {formatCurrency(totalSum)}
+                              </text>
+                              <text
+                                x={cx}
+                                y={cy + 14}
+                                textAnchor="middle"
+                                style={{ fontSize: 10, fill: "#6B7280" }}
+                              >
+                                Total
+                              </text>
+                            </svg>
+                          );
+                        })()}
+                      </div>
+                      <button
+                        onClick={() => setShowSpendDetails(true)}
+                        className="mt-4 text-[11px] font-medium px-5 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 shadow-sm"
+                      >
+                        SEE DETAILS
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 mt-1">
+                    *Spend Analysis includes transactions across all your
+                    categories
+                  </p>
+                </>
+              );
+            })()}
           </div>
         </div>
         <div className="mt-10">
@@ -2504,6 +2601,153 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      {showSpendDetails &&
+        (() => {
+          const { list, totalSum } = getCategoryDistributionFor(
+            selectedMonth,
+            selectedYear
+          );
+          const colors = [
+            "#F97316",
+            "#EA580C",
+            "#FB923C",
+            "#FDBA74",
+            "#C2410C",
+            "#FFEDD5",
+            "#FED7AA",
+          ];
+          let angleStart = 0;
+          const size = 260;
+          const cx = size / 2;
+          const cy = size / 2;
+          const r = size / 2;
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl relative overflow-hidden p-10">
+                <button
+                  onClick={() => setShowSpendDetails(false)}
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-600 flex items-center justify-center transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <h2 className="text-xl font-semibold tracking-wide mb-8">
+                  OUTFLOW CATEGORIES
+                </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                  <div className="space-y-6">
+                    {list.length === 0 && (
+                      <div className="text-sm text-zinc-500">
+                        No spending data for this period.
+                      </div>
+                    )}
+                    {list.map((c, idx) => {
+                      const pct = totalSum > 0 ? (c.total / totalSum) * 100 : 0;
+                      return (
+                        <div
+                          key={c.id}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              style={{
+                                background: colors[idx % colors.length],
+                              }}
+                              className="h-12 w-12 rounded-xl flex items-center justify-center text-white text-sm font-semibold"
+                            >
+                              {c.name.substring(0, 1).toUpperCase()}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-zinc-800">
+                                {c.name}
+                              </span>
+                              <span className="text-[11px] text-zinc-400">
+                                {pct.toFixed(2)}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-zinc-800">
+                              {formatCurrency(c.total)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {totalSum === 0 ? (
+                      <div className="w-64 h-64 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-400">
+                        No data
+                      </div>
+                    ) : (
+                      <svg
+                        width={size}
+                        height={size}
+                        viewBox={`0 0 ${size} ${size}`}
+                      >
+                        {list.map((seg, idx) => {
+                          const value = seg.total;
+                          const angle = (value / totalSum) * 360;
+                          const path = describeArc(
+                            cx,
+                            cy,
+                            r,
+                            angleStart,
+                            angleStart + angle
+                          );
+                          const color = colors[idx % colors.length];
+                          angleStart += angle;
+                          return (
+                            <path
+                              key={seg.id}
+                              d={path}
+                              fill={color}
+                              stroke="#fff"
+                              strokeWidth={1}
+                            />
+                          );
+                        })}
+                        <circle cx={cx} cy={cy} r={r * 0.55} fill="#fff" />
+                        <text
+                          x={cx}
+                          y={cy - 4}
+                          textAnchor="middle"
+                          style={{
+                            fontSize: 24,
+                            fill: "#111827",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {formatCurrency(totalSum)}
+                        </text>
+                        <text
+                          x={cx}
+                          y={cy + 20}
+                          textAnchor="middle"
+                          style={{ fontSize: 14, fill: "#6B7280" }}
+                        >
+                          Total
+                        </text>
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </Layout>
   );
 }
