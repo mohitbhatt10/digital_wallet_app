@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { listCategories, createCategory, Category } from "../api/categories";
@@ -60,12 +60,45 @@ export default function Dashboard() {
   const [showAllCategories, setShowAllCategories] = useState(false);
   // Spend analysis specific UI state
   const [showSpendDetails, setShowSpendDetails] = useState(false);
+  const spendDetailsRef = useRef<HTMLDivElement | null>(null);
+  const [donutHover, setDonutHover] = useState<{
+    label: string;
+    amount: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const nowRef = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number>(nowRef.getMonth()); // 0-indexed
   const [selectedYear, setSelectedYear] = useState<number>(
     nowRef.getFullYear()
   );
+
+  // Outside click & Escape handling for Spend Details modal
+  useEffect(() => {
+    if (!showSpendDetails) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        spendDetailsRef.current &&
+        !spendDetailsRef.current.contains(e.target as Node)
+      ) {
+        setShowSpendDetails(false);
+        setDonutHover(null);
+      }
+    };
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowSpendDetails(false);
+        setDonutHover(null);
+      }
+    };
+    window.addEventListener("mousedown", handler);
+    window.addEventListener("keydown", keyHandler);
+    return () => {
+      window.removeEventListener("mousedown", handler);
+      window.removeEventListener("keydown", keyHandler);
+    };
+  }, [showSpendDetails]);
 
   // Currency formatting helpers (use user's currency if available)
   const formatCurrency = (amount: number) => {
@@ -2622,8 +2655,11 @@ export default function Dashboard() {
           const cy = size / 2;
           const r = size / 2;
           return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl relative overflow-hidden p-10">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm overflow-y-auto">
+              <div
+                ref={spendDetailsRef}
+                className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl relative overflow-hidden p-10"
+              >
                 <button
                   onClick={() => setShowSpendDetails(false)}
                   className="absolute top-4 right-4 w-10 h-10 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-600 flex items-center justify-center transition-colors"
@@ -2668,8 +2704,8 @@ export default function Dashboard() {
                             >
                               {c.name.substring(0, 1).toUpperCase()}
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-zinc-800">
+                            <div className="flex flex-col justify-center leading-tight">
+                              <span className="text-sm font-medium text-zinc-800 align-middle">
                                 {c.name}
                               </span>
                               <span className="text-[11px] text-zinc-400">
@@ -2677,7 +2713,7 @@ export default function Dashboard() {
                               </span>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex items-center h-12">
                             <div className="text-sm font-medium text-zinc-800">
                               {formatCurrency(c.total)}
                             </div>
@@ -2692,55 +2728,96 @@ export default function Dashboard() {
                         No data
                       </div>
                     ) : (
-                      <svg
-                        width={size}
-                        height={size}
-                        viewBox={`0 0 ${size} ${size}`}
+                      <div
+                        className="relative"
+                        onMouseLeave={() => setDonutHover(null)}
                       >
-                        {list.map((seg, idx) => {
-                          const value = seg.total;
-                          const angle = (value / totalSum) * 360;
-                          const path = describeArc(
-                            cx,
-                            cy,
-                            r,
-                            angleStart,
-                            angleStart + angle
-                          );
-                          const color = colors[idx % colors.length];
-                          angleStart += angle;
-                          return (
-                            <path
-                              key={seg.id}
-                              d={path}
-                              fill={color}
-                              stroke="#fff"
-                              strokeWidth={1}
-                            />
-                          );
-                        })}
-                        <circle cx={cx} cy={cy} r={r * 0.55} fill="#fff" />
-                        <text
-                          x={cx}
-                          y={cy - 4}
-                          textAnchor="middle"
-                          style={{
-                            fontSize: 24,
-                            fill: "#111827",
-                            fontWeight: 600,
-                          }}
+                        <svg
+                          width={size}
+                          height={size}
+                          viewBox={`0 0 ${size} ${size}`}
                         >
-                          {formatCurrency(totalSum)}
-                        </text>
-                        <text
-                          x={cx}
-                          y={cy + 20}
-                          textAnchor="middle"
-                          style={{ fontSize: 14, fill: "#6B7280" }}
-                        >
-                          Total
-                        </text>
-                      </svg>
+                          {list.map((seg, idx) => {
+                            const value = seg.total;
+                            const angle = (value / totalSum) * 360;
+                            const path = describeArc(
+                              cx,
+                              cy,
+                              r,
+                              angleStart,
+                              angleStart + angle
+                            );
+                            const color = colors[idx % colors.length];
+                            angleStart += angle;
+                            return (
+                              <path
+                                key={seg.id}
+                                d={path}
+                                fill={color}
+                                stroke="#fff"
+                                strokeWidth={1}
+                                onMouseMove={(e) => {
+                                  const rect = (
+                                    e.currentTarget as SVGPathElement
+                                  ).ownerSVGElement!.getBoundingClientRect();
+                                  setDonutHover({
+                                    label: seg.name,
+                                    amount: seg.total,
+                                    x: e.clientX - rect.left,
+                                    y: e.clientY - rect.top,
+                                  });
+                                }}
+                                onMouseEnter={(e) => {
+                                  const rect = (
+                                    e.currentTarget as SVGPathElement
+                                  ).ownerSVGElement!.getBoundingClientRect();
+                                  setDonutHover({
+                                    label: seg.name,
+                                    amount: seg.total,
+                                    x: e.clientX - rect.left,
+                                    y: e.clientY - rect.top,
+                                  });
+                                }}
+                              />
+                            );
+                          })}
+                          <circle cx={cx} cy={cy} r={r * 0.55} fill="#fff" />
+                          <text
+                            x={cx}
+                            y={cy - 4}
+                            textAnchor="middle"
+                            style={{
+                              fontSize: 24,
+                              fill: "#111827",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {formatCurrency(totalSum)}
+                          </text>
+                          <text
+                            x={cx}
+                            y={cy + 20}
+                            textAnchor="middle"
+                            style={{ fontSize: 14, fill: "#6B7280" }}
+                          >
+                            Total
+                          </text>
+                        </svg>
+                        {donutHover && (
+                          <div
+                            className="pointer-events-none absolute px-3 py-1.5 rounded-lg bg-gray-900/90 text-white text-[11px] font-medium shadow-lg"
+                            style={{
+                              left: donutHover.x + 12,
+                              top: donutHover.y + 12,
+                            }}
+                          >
+                            <div>{donutHover.label}</div>
+                            <div className="text-[10px] opacity-80">
+                              {formatCurrency(donutHover.amount)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
