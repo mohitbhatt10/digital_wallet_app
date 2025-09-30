@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { listCategories, Category } from "../api/categories";
 import { listTags, Tag } from "../api/tags";
-import { Expense, filterExpenses, PagedResponse } from "../api/expenses";
+import { Expense, filterExpenses, PagedResponse, updateExpense, deleteExpense } from "../api/expenses";
 import Layout from "../components/Layout";
 
 interface FilterState {
@@ -26,6 +26,16 @@ export default function ExpenseFilters() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [pageSize] = useState(10);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [expenseForm, setExpenseForm] = useState({
+    amount: "",
+    description: "",
+    categoryId: "",
+    tagIds: [] as number[],
+    paymentType: "",
+    transactionDate: "",
+  });
   // Aggregate total across ALL filtered pages (not just current page)
   const [totalFilteredAmount, setTotalFilteredAmount] = useState<number | null>(
     null
@@ -210,10 +220,29 @@ export default function ExpenseFilters() {
     }));
   }
 
-  const totalAmount = expenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
-  );
+  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const formatLocalDate = (iso: string) => {
+    if (!iso) return ""; const d = new Date(iso); const dd = String(d.getDate()).padStart(2,'0'); const mm = String(d.getMonth()+1).padStart(2,'0'); const yyyy = d.getFullYear(); return `${dd}/${mm}/${yyyy}`;
+  };
+  const formatLocalTime = (iso: string) => {
+    if (!iso) return ""; const d = new Date(iso); const hh = String(d.getHours()).padStart(2,'0'); const mi = String(d.getMinutes()).padStart(2,'0'); return `${hh}:${mi}`;
+  };
+  function handleEditClick(exp: Expense){
+    setEditingExpense(exp);
+    setExpenseForm({
+      amount: String(exp.amount),
+      description: exp.description||"",
+      categoryId: exp.category?.id? String(exp.category.id):"",
+      tagIds: exp.tags? exp.tags.map(t=>t.id):[],
+      paymentType: exp.paymentType||"",
+      transactionDate: exp.transactionDate? exp.transactionDate.substring(0,16):"",
+    });
+    setShowEdit(true);
+  }
+  async function handleDeleteClick(id:number){
+    if(!window.confirm('Delete this expense?')) return; try { await deleteExpense(id); applyFilters(0);} catch{ alert('Failed to delete expense'); }
+  }
+  async function handleEditSubmit(e:React.FormEvent){ e.preventDefault(); if(!editingExpense) return; try { await updateExpense(editingExpense.id, { amount: parseFloat(expenseForm.amount), description: expenseForm.description, categoryId: expenseForm.categoryId? Number(expenseForm.categoryId): undefined, tagIds: expenseForm.tagIds, paymentType: expenseForm.paymentType || undefined, transactionDate: expenseForm.transactionDate? new Date(expenseForm.transactionDate).toISOString(): editingExpense.transactionDate}); setShowEdit(false); setEditingExpense(null); applyFilters(currentPage);} catch { alert('Failed to update expense'); } }
   const hasActiveFilters =
     filters.startDate ||
     filters.endDate ||
@@ -223,6 +252,7 @@ export default function ExpenseFilters() {
   if (!user) return null;
 
   return (
+    <>
     <Layout currentPage="filters">
       <div className="px-6 py-8">
         <div className="max-w-7xl mx-auto">
@@ -483,58 +513,41 @@ export default function ExpenseFilters() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {expenses.map((expense, idx) => (
-                      <div
-                        key={expense.id}
-                        className={`flex items-center justify-between text-sm rounded-lg p-4 transition-colors duration-200 ${
-                          idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        }`}
-                      >
-                        <div className="flex flex-col flex-1">
-                          <div className="flex items-center gap-4 mb-2">
-                            <span className="font-medium text-gray-900 text-lg">
-                              {formatCurrency(expense.amount)}
-                            </span>
-                            <span className="text-gray-600">
-                              {expense.description}
-                            </span>
+                    {expenses.map((expense, idx) => {
+                      const palette = ["bg-gradient-to-br from-indigo-500 to-indigo-600","bg-gradient-to-br from-rose-500 to-pink-600","bg-gradient-to-br from-emerald-500 to-teal-600","bg-gradient-to-br from-amber-500 to-orange-600","bg-gradient-to-br from-blue-500 to-cyan-600"];
+                      const avatarColor = palette[idx % palette.length];
+                      return (
+                        <div key={expense.id} className="group relative px-5 py-4 flex items-start gap-4 rounded-2xl border border-zinc-200/60 bg-white/70 backdrop-blur-sm hover:shadow-md transition-all">
+                          <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0 ${avatarColor}`}>
+                            {expense.category?.name?.[0]?.toUpperCase() || '?'}
                           </div>
-
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            {expense.category && (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                                {expense.category.name}
-                              </span>
-                            )}
-                            <span>
-                              {new Date(
-                                expense.transactionDate
-                              ).toLocaleDateString()}
-                            </span>
-                            <span>
-                              via{" "}
-                              {expense.paymentType?.replace("-", " ") ||
-                                "unknown"}
-                            </span>
-                          </div>
-
-                          {expense.tags && expense.tags.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {expense.tags.map((tag) => (
-                                <span
-                                  key={tag.id}
-                                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${getTagClass(
-                                    tag
-                                  )}`}
-                                >
-                                  {tag.name}
-                                </span>
-                              ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-zinc-800 text-sm truncate max-w-[180px]" title={expense.description || expense.category?.name}>{formatCurrency(expense.amount)}</span>
+                                  {expense.paymentType && <span className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-600 font-medium">{expense.paymentType.replace('-', ' ')}</span>}
+                                </div>
+                                <div className="text-xs text-zinc-500 mt-0.5 truncate max-w-[260px]" title={expense.description}>{expense.category?.name || '—'}{expense.description ? ` · ${expense.description}` : ''}</div>
+                                {expense.tags && expense.tags.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1.5">{expense.tags.slice(0,5).map(tag => <span key={tag.id} className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getTagClass(tag)}`}>{tag.name}</span>)}{expense.tags.length>5 && <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">+{expense.tags.length-5}</span>}</div>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-1 shrink-0">
+                                <div className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-500">
+                                  <span className="px-2 py-0.5 rounded-md bg-white border border-zinc-200 shadow-sm flex items-center gap-1"><svg className="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>{formatLocalDate(expense.transactionDate)}</span>
+                                  <span className="px-2 py-0.5 rounded-md bg-white border border-zinc-200 shadow-sm flex items-center gap-1"><svg className="w-3 h-3 text-pink-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>{formatLocalTime(expense.transactionDate)}</span>
+                                </div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 mt-1">
+                                  <button onClick={()=>handleEditClick(expense)} className="p-1.5 rounded-md bg-white/90 hover:bg-indigo-50 text-indigo-600 hover:text-indigo-700 border border-zinc-200 shadow-sm" title="Edit expense" aria-label="Edit expense"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                                  <button onClick={()=>handleDeleteClick(expense.id)} className="p-1.5 rounded-md bg-white/90 hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-zinc-200 shadow-sm" title="Delete expense" aria-label="Delete expense"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                                </div>
+                              </div>
                             </div>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -602,6 +615,60 @@ export default function ExpenseFilters() {
           </div>
         </div>
       </div>
-    </Layout>
+  </Layout>
+    {showEdit && (
+      <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/60 backdrop-blur-md overflow-y-auto">
+        {/* Click catcher (optional future) */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="relative w-full max-w-xl my-8 rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl border border-zinc-200 ring-1 ring-zinc-200/60"
+        >
+          <button
+            onClick={()=>{setShowEdit(false); setEditingExpense(null);}}
+            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-zinc-100/90 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center transition-colors shadow-sm"
+            aria-label="Close edit dialog"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+          <div className="p-8 pt-10 overflow-y-auto max-h-[calc(100vh-6rem)]">
+            <h3 className="text-xl font-semibold mb-6">Edit Expense</h3>
+            <form onSubmit={handleEditSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1">Amount</label>
+                  <input type="number" step="0.01" required value={expenseForm.amount} onChange={e=>setExpenseForm(f=>({...f, amount:e.target.value}))} className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1">Payment Type</label>
+                  <input type="text" value={expenseForm.paymentType} onChange={e=>setExpenseForm(f=>({...f, paymentType:e.target.value}))} className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1">Category</label>
+                  <select value={expenseForm.categoryId} onChange={e=>setExpenseForm(f=>({...f, categoryId:e.target.value}))} className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"><option value="">— None —</option>{categories.filter(c=>!c.parent).map(c=> <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1">Date & Time</label>
+                  <input type="datetime-local" value={expenseForm.transactionDate} onChange={e=>setExpenseForm(f=>({...f, transactionDate:e.target.value}))} className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-zinc-600 mb-1">Description</label>
+                  <input type="text" value={expenseForm.description} onChange={e=>setExpenseForm(f=>({...f, description:e.target.value}))} className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-2">Tags</label>
+                <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto">{tags.map(tag=>{ const selected = expenseForm.tagIds.includes(tag.id); return <button type="button" key={tag.id} onClick={()=> setExpenseForm(f=>({...f, tagIds: selected? f.tagIds.filter(id=>id!==tag.id): [...f.tagIds, tag.id]}))} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selected? 'bg-indigo-600 text-white shadow':'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>{tag.name}</button>; })}</div>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={()=>{setShowEdit(false); setEditingExpense(null);}} className="px-5 py-2 rounded-lg border border-zinc-300 bg-white hover:bg-zinc-50 text-sm font-medium">Cancel</button>
+                <button type="submit" className="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-sm">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
