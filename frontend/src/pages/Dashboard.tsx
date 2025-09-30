@@ -975,129 +975,242 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="mt-10">
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Recent Expenses</h2>
-              <div className="flex items-center gap-2">
-                <Link to="/expenses/filter" className="btn-outline text-xs">
-                  Filter
-                </Link>
-                <button
-                  className="btn-outline text-xs"
-                  onClick={() => {
-                    setEditingExpense(null);
-                    setExpenseForm({
-                      amount: "",
-                      description: "",
-                      categoryId: "",
-                      subCategoryId: "",
-                      tagIds: [],
-                      paymentType: "",
-                      transactionDate: formatDateForInput(),
-                    });
-                    setShowExpense(true);
-                    setShowAllExpenseSystemTags(false);
-                  }}
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-            {recentExpenses.length === 0 && (
-              <div className="text-sm text-zinc-500">No expenses yet.</div>
-            )}
-            <ul className="space-y-3">
-              {recentExpenses.map((e, idx) => (
-                <li
-                  key={e.id}
-                  className={`flex items-center justify-between text-sm group rounded-lg p-2 -mx-2 transition-colors duration-200 ${
-                    idx % 2 === 0 ? "bg-gray-100" : "bg-gray-200"
-                  }`}
-                >
-                  <div className="flex flex-col">
-                    <span className="font-medium text-zinc-800">
-                      {formatCurrency(e.amount)}
-                    </span>
-                    <span className="text-zinc-500">
-                      {e.category?.name || "—"}
-                    </span>
-
-                    {e.tags && e.tags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {e.tags.map((t) => (
-                          <span
-                            key={t.id ?? t.name}
-                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${getTagClass(
-                              t
-                            )}`}
-                          >
-                            {t.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {e.paymentType && (
-                      <span className="text-xs text-zinc-400 mt-1">
-                        via {e.paymentType.replace("-", " ")}
+          {(() => {
+            const display = recentExpenses.slice(0, 5);
+            const totalRecent = display.reduce(
+              (s, x) => s + (x.amount || 0),
+              0
+            );
+            const palette = [
+              "bg-gradient-to-br from-indigo-500 to-indigo-600",
+              "bg-gradient-to-br from-rose-500 to-pink-600",
+              "bg-gradient-to-br from-emerald-500 to-teal-600",
+              "bg-gradient-to-br from-amber-500 to-orange-600",
+              "bg-gradient-to-br from-blue-500 to-cyan-600",
+            ];
+            return (
+              <div className="relative rounded-3xl border border-zinc-200/70 bg-white/80 backdrop-blur-md shadow-xl overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.08),transparent_60%),radial-gradient(circle_at_80%_40%,rgba(236,72,153,0.06),transparent_60%)]"></div>
+                <div className="relative px-6 pt-6 pb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold tracking-wide flex items-center gap-2">
+                      <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white text-sm font-bold shadow">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 8c-1.657 0-3 1.343-3 3m6 0a3 3 0 00-3-3m0 0V5m0 3a3 3 0 013 3m-3 0H9m3 0h3m5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </span>
+                      Recent Expenses
+                    </h2>
+                    {display.length > 0 && (
+                      <span className="text-[11px] px-2 py-1 rounded-lg bg-zinc-100 text-zinc-600 font-medium">
+                        {display.length} items
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <span className="text-xs text-zinc-400">
-                        {formatLocalDate(e.transactionDate)}
-                      </span>
-                      <br />
-                      <span className="text-xs text-zinc-300">
-                        {formatLocalTime(e.transactionDate)}
-                      </span>
-                    </div>
-                    <div className="flex gap-1 opacity-100 transition-opacity duration-200">
-                      <button
-                        onClick={() => handleEditExpense(e)}
-                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors duration-200"
-                        title="Edit expense"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteExpense(e.id)}
-                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors duration-200"
-                        title="Delete expense"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
-                    </div>
+                    {display.length > 0 && (
+                      <div className="text-[11px] font-semibold px-3 py-1 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-sm">
+                        {formatCurrency(totalRecent)}
+                      </div>
+                    )}
+                    <Link
+                      to="/expenses/filter"
+                      className="text-xs px-3 py-2 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 font-medium shadow-sm transition-colors"
+                    >
+                      Filter
+                    </Link>
+                    <button
+                      className="text-xs px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-medium shadow-sm transition-colors"
+                      onClick={() => {
+                        setEditingExpense(null);
+                        setExpenseForm({
+                          amount: "",
+                          description: "",
+                          categoryId: "",
+                          subCategoryId: "",
+                          tagIds: [],
+                          paymentType: "",
+                          transactionDate: formatDateForInput(),
+                        });
+                        setShowExpense(true);
+                        setShowAllExpenseSystemTags(false);
+                      }}
+                    >
+                      Add
+                    </button>
                   </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+                </div>
+                {display.length === 0 ? (
+                  <div className="px-6 pb-8 text-sm text-zinc-500">
+                    No expenses yet.
+                  </div>
+                ) : (
+                  <ul className="relative divide-y divide-zinc-100/60">
+                    {display.map((e, idx) => {
+                      const avatarColor = palette[idx % palette.length];
+                      return (
+                        <li
+                          key={e.id}
+                          className="group relative px-6 py-4 flex items-start gap-4 hover:bg-zinc-50/70 transition-colors"
+                        >
+                          <div
+                            className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white text-sm font-semibold shadow-sm shrink-0 ${avatarColor}`}
+                          >
+                            {e.category?.name?.[0]?.toUpperCase() || "?"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="font-semibold text-zinc-800 text-sm truncate max-w-[160px]"
+                                    title={e.description || e.category?.name}
+                                  >
+                                    {formatCurrency(e.amount)}
+                                  </span>
+                                  {e.paymentType && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-500 font-medium">
+                                      {e.paymentType.replace("-", " ")}
+                                    </span>
+                                  )}
+                                </div>
+                                <div
+                                  className="text-xs text-zinc-500 mt-0.5 truncate max-w-[200px]"
+                                  title={e.description}
+                                >
+                                  {e.category?.name || "—"}
+                                  {e.description ? ` · ${e.description}` : ""}
+                                </div>
+                                {e.tags && e.tags.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {e.tags.slice(0, 4).map((t, i) => (
+                                      <span
+                                        key={t.id ?? t.name}
+                                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getTagClass(
+                                          t
+                                        )}`}
+                                      >
+                                        {t.name}
+                                      </span>
+                                    ))}
+                                    {e.tags.length > 4 && (
+                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500">
+                                        +{e.tags.length - 4}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-1 shrink-0">
+                                <div className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-500">
+                                  <span className="px-2 py-0.5 rounded-md bg-white border border-zinc-200 shadow-sm flex items-center gap-1">
+                                    <svg
+                                      className="w-3 h-3 text-indigo-500"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={2}
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                      />
+                                    </svg>
+                                    {formatLocalDate(e.transactionDate)}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-md bg-white border border-zinc-200 shadow-sm flex items-center gap-1">
+                                    <svg
+                                      className="w-3 h-3 text-pink-500"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={2}
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                      />
+                                    </svg>
+                                    {formatLocalTime(e.transactionDate)}
+                                  </span>
+                                </div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 mt-1">
+                                  <button
+                                    onClick={() => handleEditExpense(e)}
+                                    className="p-1.5 rounded-md bg-white/90 hover:bg-indigo-50 text-indigo-600 hover:text-indigo-700 border border-zinc-200 shadow-sm"
+                                    title="Edit expense"
+                                    aria-label="Edit expense"
+                                  >
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                      />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteExpense(e.id)}
+                                    className="p-1.5 rounded-md bg-white/90 hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-zinc-200 shadow-sm"
+                                    title="Delete expense"
+                                    aria-label="Delete expense"
+                                  >
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <div className="px-6 py-4 flex items-center justify-between border-t border-zinc-100 bg-gradient-to-r from-white to-zinc-50">
+                  <span className="text-[11px] text-zinc-500">
+                    Showing latest {Math.min(5, recentExpenses.length)} of{" "}
+                    {recentExpenses.length} transactions
+                  </span>
+                  <Link
+                    to="/expenses/filter"
+                    className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    View all &rarr;
+                  </Link>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
       {(showExpense || showCategory || showTag || showBudget) && (
