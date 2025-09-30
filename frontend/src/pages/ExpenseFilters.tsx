@@ -27,7 +27,9 @@ export default function ExpenseFilters() {
   const [totalElements, setTotalElements] = useState(0);
   const [pageSize] = useState(10);
   // Aggregate total across ALL filtered pages (not just current page)
-  const [totalFilteredAmount, setTotalFilteredAmount] = useState<number | null>(null);
+  const [totalFilteredAmount, setTotalFilteredAmount] = useState<number | null>(
+    null
+  );
   const [totalCalcLoading, setTotalCalcLoading] = useState(false);
 
   const [filters, setFilters] = useState<FilterState>(() => {
@@ -135,7 +137,9 @@ export default function ExpenseFilters() {
   }
 
   // Compute sum across all filtered pages without loading all items into UI state
-  async function calculateTotalAcrossAllPages(firstPage: PagedResponse<Expense>) {
+  async function calculateTotalAcrossAllPages(
+    firstPage: PagedResponse<Expense>
+  ) {
     try {
       setTotalCalcLoading(true);
       let aggregate = firstPage.content.reduce((s, e) => s + e.amount, 0);
@@ -147,7 +151,10 @@ export default function ExpenseFilters() {
             const pageResp = await filterExpenses({
               startDate: filters.startDate || undefined,
               endDate: filters.endDate || undefined,
-              categoryIds: filters.categoryIds.length > 0 ? filters.categoryIds : undefined,
+              categoryIds:
+                filters.categoryIds.length > 0
+                  ? filters.categoryIds
+                  : undefined,
               tagIds: filters.tagIds.length > 0 ? filters.tagIds : undefined,
               page: p,
               size: pageSize,
@@ -203,7 +210,10 @@ export default function ExpenseFilters() {
     }));
   }
 
-  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const totalAmount = expenses.reduce(
+    (sum, expense) => sum + expense.amount,
+    0
+  );
   const hasActiveFilters =
     filters.startDate ||
     filters.endDate ||
@@ -422,16 +432,21 @@ export default function ExpenseFilters() {
                     <div className="text-right space-y-1">
                       <div className="text-2xl font-bold text-gray-900 min-h-[2rem] flex items-center justify-end">
                         {totalCalcLoading ? (
-                          <span className="text-sm font-medium text-gray-400 animate-pulse">Calculating…</span>
+                          <span className="text-sm font-medium text-gray-400 animate-pulse">
+                            Calculating…
+                          </span>
                         ) : (
                           formatCurrency(totalFilteredAmount ?? totalAmount)
                         )}
                       </div>
                       <div className="text-sm text-gray-500">
-                        Page {currentPage + 1} of {totalPages} • {totalElements} total expense
+                        Page {currentPage + 1} of {totalPages} • {totalElements}{" "}
+                        total expense
                         {totalElements !== 1 ? "s" : ""}
                         {totalFilteredAmount != null && totalPages > 1 && (
-                          <span className="block text-[11px] text-gray-400">(Sum across all filtered pages)</span>
+                          <span className="block text-[11px] text-gray-400">
+                            (Sum across all filtered pages)
+                          </span>
                         )}
                       </div>
                     </div>
