@@ -2771,7 +2771,7 @@ export default function Dashboard() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm overflow-y-auto">
               <div
                 ref={spendDetailsRef}
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl relative overflow-hidden p-10"
+                className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl relative max-h-[90vh] overflow-auto p-6 md:p-10"
               >
                 <button
                   onClick={() => setShowSpendDetails(false)}
@@ -2916,20 +2916,32 @@ export default function Dashboard() {
                             Total
                           </text>
                         </svg>
-                        {donutHover && (
-                          <div
-                            className="pointer-events-none absolute px-3 py-1.5 rounded-lg bg-gray-900/90 text-white text-[11px] font-medium shadow-lg"
-                            style={{
-                              left: donutHover.x + 12,
-                              top: donutHover.y + 12,
-                            }}
-                          >
-                            <div>{donutHover.label}</div>
-                            <div className="text-[10px] opacity-80">
-                              {formatCurrency(donutHover.amount)}
-                            </div>
-                          </div>
-                        )}
+                        {donutHover &&
+                          (() => {
+                            const tooltipWidth = 140;
+                            const tooltipHeight = 52; // approx height
+                            let left = donutHover.x + 12;
+                            let top = donutHover.y + 12;
+                            if (left + tooltipWidth > size)
+                              left = donutHover.x - tooltipWidth - 12;
+                            if (left < 0) left = 0;
+                            if (top + tooltipHeight > size)
+                              top = donutHover.y - tooltipHeight - 12;
+                            if (top < 0) top = 0;
+                            return (
+                              <div
+                                className="pointer-events-none absolute px-3 py-1.5 rounded-lg bg-gray-900/90 text-white text-[11px] font-medium shadow-lg backdrop-blur-sm"
+                                style={{ left, top, width: tooltipWidth }}
+                              >
+                                <div className="truncate">
+                                  {donutHover.label}
+                                </div>
+                                <div className="text-[10px] opacity-80">
+                                  {formatCurrency(donutHover.amount)}
+                                </div>
+                              </div>
+                            );
+                          })()}
                       </div>
                     )}
                   </div>
