@@ -26,6 +26,9 @@ export default function ExpenseFilters() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [pageSize] = useState(10);
+  // Aggregate total across ALL filtered pages (not just current page)
+  const [totalFilteredAmount, setTotalFilteredAmount] = useState<number | null>(null);
+  const [totalCalcLoading, setTotalCalcLoading] = useState(false);
 
   const [filters, setFilters] = useState<FilterState>(() => {
     // Default to first day of current month through today
@@ -99,6 +102,10 @@ export default function ExpenseFilters() {
   async function applyFilters(page: number = 0) {
     setLoading(true);
     setError(undefined);
+    // Reset aggregate total when starting a fresh filter from page 0
+    if (page === 0) {
+      setTotalFilteredAmount(null);
+    }
 
     try {
       const response = await filterExpenses({
@@ -115,10 +122,46 @@ export default function ExpenseFilters() {
       setCurrentPage(response.number);
       setTotalPages(response.totalPages);
       setTotalElements(response.totalElements);
+
+      // Kick off total amount aggregation only when applying filters from the first page
+      if (page === 0) {
+        calculateTotalAcrossAllPages(response);
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to filter expenses");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Compute sum across all filtered pages without loading all items into UI state
+  async function calculateTotalAcrossAllPages(firstPage: PagedResponse<Expense>) {
+    try {
+      setTotalCalcLoading(true);
+      let aggregate = firstPage.content.reduce((s, e) => s + e.amount, 0);
+      const totalPagesLocal = firstPage.totalPages;
+      if (totalPagesLocal > 1) {
+        // Fetch remaining pages sequentially to avoid server overload (can optimize later)
+        for (let p = 1; p < totalPagesLocal; p++) {
+          try {
+            const pageResp = await filterExpenses({
+              startDate: filters.startDate || undefined,
+              endDate: filters.endDate || undefined,
+              categoryIds: filters.categoryIds.length > 0 ? filters.categoryIds : undefined,
+              tagIds: filters.tagIds.length > 0 ? filters.tagIds : undefined,
+              page: p,
+              size: pageSize,
+            });
+            aggregate += pageResp.content.reduce((s, e) => s + e.amount, 0);
+          } catch (e) {
+            // If any page fails, stop aggregation and fall back to partial
+            break;
+          }
+        }
+      }
+      setTotalFilteredAmount(aggregate);
+    } finally {
+      setTotalCalcLoading(false);
     }
   }
 
@@ -160,10 +203,7 @@ export default function ExpenseFilters() {
     }));
   }
 
-  const totalAmount = expenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
-  );
+  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const hasActiveFilters =
     filters.startDate ||
     filters.endDate ||
@@ -379,14 +419,20 @@ export default function ExpenseFilters() {
                 <div className="card p-6 mb-6">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Results Summary</h2>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">
-                        {formatCurrency(totalAmount)}
+                    <div className="text-right space-y-1">
+                      <div className="text-2xl font-bold text-gray-900 min-h-[2rem] flex items-center justify-end">
+                        {totalCalcLoading ? (
+                          <span className="text-sm font-medium text-gray-400 animate-pulse">Calculating…</span>
+                        ) : (
+                          formatCurrency(totalFilteredAmount ?? totalAmount)
+                        )}
                       </div>
                       <div className="text-sm text-gray-500">
-                        Page {currentPage + 1} of {totalPages} • {totalElements}{" "}
-                        total expense
+                        Page {currentPage + 1} of {totalPages} • {totalElements} total expense
                         {totalElements !== 1 ? "s" : ""}
+                        {totalFilteredAmount != null && totalPages > 1 && (
+                          <span className="block text-[11px] text-gray-400">(Sum across all filtered pages)</span>
+                        )}
                       </div>
                     </div>
                   </div>
