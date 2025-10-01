@@ -7,10 +7,10 @@ import {
   Expense,
   filterExpenses,
   PagedResponse,
-  updateExpense,
   deleteExpense,
 } from "../api/expenses";
 import Layout from "../components/Layout";
+import ExpenseModal from "../components/ExpenseModal";
 
 interface FilterState {
   startDate: string;
@@ -34,14 +34,7 @@ export default function ExpenseFilters() {
   const [pageSize] = useState(10);
   const [showEdit, setShowEdit] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [expenseForm, setExpenseForm] = useState({
-    amount: "",
-    description: "",
-    categoryId: "",
-    tagIds: [] as number[],
-    paymentType: "",
-    transactionDate: "",
-  });
+  
   // Aggregate total across ALL filtered pages (not just current page)
   const [totalFilteredAmount, setTotalFilteredAmount] = useState<number | null>(
     null
@@ -247,18 +240,9 @@ export default function ExpenseFilters() {
   };
   function handleEditClick(exp: Expense) {
     setEditingExpense(exp);
-    setExpenseForm({
-      amount: String(exp.amount),
-      description: exp.description || "",
-      categoryId: exp.category?.id ? String(exp.category.id) : "",
-      tagIds: exp.tags ? exp.tags.map((t) => t.id) : [],
-      paymentType: exp.paymentType || "",
-      transactionDate: exp.transactionDate
-        ? exp.transactionDate.substring(0, 16)
-        : "",
-    });
     setShowEdit(true);
   }
+
   async function handleDeleteClick(id: number) {
     if (!window.confirm("Delete this expense?")) return;
     try {
@@ -268,28 +252,11 @@ export default function ExpenseFilters() {
       alert("Failed to delete expense");
     }
   }
-  async function handleEditSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editingExpense) return;
-    try {
-      await updateExpense(editingExpense.id, {
-        amount: parseFloat(expenseForm.amount),
-        description: expenseForm.description,
-        categoryId: expenseForm.categoryId
-          ? Number(expenseForm.categoryId)
-          : undefined,
-        tagIds: expenseForm.tagIds,
-        paymentType: expenseForm.paymentType || undefined,
-        transactionDate: expenseForm.transactionDate
-          ? new Date(expenseForm.transactionDate).toISOString()
-          : editingExpense.transactionDate,
-      });
-      setShowEdit(false);
-      setEditingExpense(null);
-      applyFilters(currentPage);
-    } catch {
-      alert("Failed to update expense");
-    }
+
+  function handleExpenseSuccess(expense: Expense, isEdit: boolean) {
+    // Refresh the current page to show updated data
+    applyFilters(currentPage);
+    setEditingExpense(null);
   }
   const hasActiveFilters =
     filters.startDate ||
@@ -784,185 +751,17 @@ export default function ExpenseFilters() {
           </div>
         </div>
       </Layout>
-      {showEdit && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/60 backdrop-blur-md overflow-y-auto">
-          {/* Click catcher (optional future) */}
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="relative w-full max-w-xl my-8 rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl border border-zinc-200 ring-1 ring-zinc-200/60"
-          >
-            <button
-              onClick={() => {
-                setShowEdit(false);
-                setEditingExpense(null);
-              }}
-              className="absolute top-3 right-3 w-9 h-9 rounded-full bg-zinc-100/90 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center transition-colors shadow-sm"
-              aria-label="Close edit dialog"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <div className="p-8 pt-10 overflow-y-auto max-h-[calc(100vh-6rem)]">
-              <h3 className="text-xl font-semibold mb-6">Edit Expense</h3>
-              <form onSubmit={handleEditSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">
-                      Amount
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={expenseForm.amount}
-                      onChange={(e) =>
-                        setExpenseForm((f) => ({
-                          ...f,
-                          amount: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">
-                      Payment Type
-                    </label>
-                    <input
-                      type="text"
-                      value={expenseForm.paymentType}
-                      onChange={(e) =>
-                        setExpenseForm((f) => ({
-                          ...f,
-                          paymentType: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">
-                      Category
-                    </label>
-                    <select
-                      value={expenseForm.categoryId}
-                      onChange={(e) =>
-                        setExpenseForm((f) => ({
-                          ...f,
-                          categoryId: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                    >
-                      <option value="">— None —</option>
-                      {categories
-                        .filter((c) => !c.parent)
-                        .map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">
-                      Date & Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={expenseForm.transactionDate}
-                      onChange={(e) =>
-                        setExpenseForm((f) => ({
-                          ...f,
-                          transactionDate: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">
-                      Description
-                    </label>
-                    <input
-                      type="text"
-                      value={expenseForm.description}
-                      onChange={(e) =>
-                        setExpenseForm((f) => ({
-                          ...f,
-                          description: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600 mb-2">
-                    Tags
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto">
-                    {tags.map((tag) => {
-                      const selected = expenseForm.tagIds.includes(tag.id);
-                      return (
-                        <button
-                          type="button"
-                          key={tag.id}
-                          onClick={() =>
-                            setExpenseForm((f) => ({
-                              ...f,
-                              tagIds: selected
-                                ? f.tagIds.filter((id) => id !== tag.id)
-                                : [...f.tagIds, tag.id],
-                            }))
-                          }
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                            selected
-                              ? "bg-indigo-600 text-white shadow"
-                              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                          }`}
-                        >
-                          {tag.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowEdit(false);
-                      setEditingExpense(null);
-                    }}
-                    className="px-5 py-2 rounded-lg border border-zinc-300 bg-white hover:bg-zinc-50 text-sm font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-sm"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExpenseModal
+        isOpen={showEdit}
+        onClose={() => {
+          setShowEdit(false);
+          setEditingExpense(null);
+        }}
+        categories={categories}
+        tags={tags}
+        editingExpense={editingExpense}
+        onSuccess={handleExpenseSuccess}
+      />
     </>
   );
 }
