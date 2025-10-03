@@ -12,6 +12,8 @@ import {
 } from "../api/budgets";
 import Layout from "../components/Layout";
 import ExpenseModal from "../components/ExpenseModal";
+import CategoryModal from "../components/CategoryModal";
+import TagModal from "../components/TagModal";
 
 export default function Dashboard() {
   const location = useLocation();
@@ -327,79 +329,9 @@ export default function Dashboard() {
     }
   }
 
-  async function submitCategory(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(undefined);
-    try {
-      if (categoryForm.categoryType === "main") {
-        // Create main category first
-        const mainCategory = await createCategory({ name: categoryForm.name });
-        const newCategories = [mainCategory];
+  // moved to CategoryModal component
 
-        // Create sub-categories
-        for (const subName of categoryForm.subCategories) {
-          if (subName.trim()) {
-            const subCategory = await createCategory({
-              name: subName.trim(),
-              parentId: mainCategory.id,
-            });
-            newCategories.push(subCategory);
-          }
-        }
-
-        setCategories((prev) => [...prev, ...newCategories]);
-      } else {
-        // Create single sub-category
-        const created = await createCategory({
-          name: categoryForm.name,
-          parentId: categoryForm.parentId
-            ? Number(categoryForm.parentId)
-            : undefined,
-        });
-        setCategories((prev) => [...prev, created]);
-      }
-
-      setShowCategory(false);
-      setCategoryForm({
-        name: "",
-        parentId: "",
-        categoryType: "",
-        subCategories: [""],
-      });
-    } catch {
-      setError("Failed to create category");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function submitTag(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(undefined);
-    try {
-      // Check for duplicate tag names (case-insensitive)
-      const existingTag = tags.find(
-        (t) => t.name.toLowerCase() === tagForm.name.toLowerCase()
-      );
-      if (existingTag) {
-        setError(`Tag "${tagForm.name}" already exists`);
-        setLoading(false);
-        return;
-      }
-
-      const created = await createTag({ name: tagForm.name });
-      setTags((prev) => [...prev, created]);
-      setShowTag(false);
-      setTagForm({ name: "" });
-      setShowAllSystemTags(false);
-    } catch {
-      setError("Failed to create tag");
-    } finally {
-      setLoading(false);
-    }
-  }
+  // moved to TagModal component
 
   async function submitBudget(e: React.FormEvent) {
     e.preventDefault();
@@ -1106,7 +1038,31 @@ export default function Dashboard() {
         editingExpense={editingExpense}
         onSuccess={handleExpenseSuccess}
       />
-      {(showCategory || showTag || showBudget) && (
+      {/* Reusable Modals */}
+      <CategoryModal
+        isOpen={showCategory}
+        onClose={() => {
+          setShowCategory(false);
+          setCategoryForm({ name: "", parentId: "", categoryType: "", subCategories: [""] });
+        }}
+        categories={categories}
+        onSuccess={(created) => {
+          setCategories((prev) => [...prev, ...created]);
+        }}
+      />
+      <TagModal
+        isOpen={showTag}
+        onClose={() => {
+          setShowTag(false);
+          setShowAllSystemTags(false);
+        }}
+        tags={tags}
+        onSuccess={(created) => {
+          setTags((prev) => [...prev, created]);
+        }}
+      />
+
+      {(showBudget) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300 overflow-y-auto">
           <div className="bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl w-full max-w-4xl relative overflow-hidden transform transition-all duration-500 scale-100 opacity-100 my-8">
             {/* Header gradient overlay */}
@@ -1158,8 +1114,7 @@ export default function Dashboard() {
             )}
 
             <div className="relative max-h-[80vh] overflow-y-auto">
-              {showCategory && (
-                <form onSubmit={submitCategory} className="space-y-6">
+              {/* Category modal moved to CategoryModal component */}
                   {/* Title with icon */}
                   <div className="flex items-center gap-3 sticky top-0 bg-white/95 backdrop-blur-sm py-4 px-6 border-b border-gray-100/50 z-10">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
@@ -1534,11 +1489,8 @@ export default function Dashboard() {
                       )}
                     </button>
                   </div>
-                </form>
-              )}
 
-              {showTag && (
-                <form onSubmit={submitTag} className="space-y-6">
+              {/* Tag modal moved to TagModal component */}
                   {/* Title with icon */}
                   <div className="flex items-center gap-3 sticky top-0 bg-white/95 backdrop-blur-sm py-4 px-6 border-b border-gray-100/50 z-10">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
@@ -1876,8 +1828,6 @@ export default function Dashboard() {
                       )}
                     </button>
                   </div>
-                </form>
-              )}
 
               {showBudget && (
                 <form onSubmit={submitBudget} className="space-y-6">
